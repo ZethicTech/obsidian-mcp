@@ -24,14 +24,30 @@ claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/mcp-obsidian-
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+Add to your `claude_desktop_config.json`. Claude Desktop doesn't source your shell profile, so use the full path to `npx` (find it with `which npx`):
 
 ```json
 {
   "mcpServers": {
     "obsidian": {
-      "command": "npx",
+      "command": "/opt/homebrew/bin/npx",
       "args": ["mcp-obsidian-cli"],
+      "env": {
+        "OBSIDIAN_VAULT": "MyVault"
+      }
+    }
+  }
+}
+```
+
+Common `npx` locations: `/opt/homebrew/bin/npx` (Homebrew), `/usr/local/bin/npx` (nvm/system). Or point directly at the `node` binary and a local checkout:
+
+```json
+{
+  "mcpServers": {
+    "obsidian": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/path/to/mcp-obsidian-cli/dist/index.js"],
       "env": {
         "OBSIDIAN_VAULT": "MyVault"
       }
@@ -122,7 +138,7 @@ If your binary is elsewhere, set `OBSIDIAN_CLI_PATH` to its full path.
 
 ## Platform notes
 
-- **macOS**: Obsidian registers the CLI in `~/.zprofile`. The server auto-detects the app bundle path, so no PATH config is needed.
+- **macOS**: The server auto-detects the Obsidian app bundle and resolves the correct user temp directory (needed for the CLI's IPC socket), so no extra PATH or environment config is needed.
 - **Windows**: Uses `Obsidian.com` terminal redirector for proper stdin/stdout.
 - **Linux**: CLI is symlinked at `/usr/local/bin/obsidian` (or `~/.local/bin/obsidian` as fallback).
 
@@ -132,6 +148,7 @@ If your binary is elsewhere, set `OBSIDIAN_CLI_PATH` to its full path.
 |-------|----------|
 | "Obsidian CLI not found" | Ensure Obsidian 1.12+ is installed and CLI is enabled in Settings → General → CLI. If installed in a non-standard location, set `OBSIDIAN_CLI_PATH`. |
 | "Timed out" | Make sure the Obsidian app is running |
+| Tools return empty results | Make sure the Obsidian app is running — the CLI communicates with the live app process |
 | Wrong vault | Check `OBSIDIAN_VAULT` matches your vault name exactly |
 | Windows issues | Set `OBSIDIAN_CLI_PATH` to the full path of `Obsidian.com` |
 
