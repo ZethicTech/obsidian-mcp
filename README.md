@@ -1,4 +1,4 @@
-# obsidian-mcp
+# mcp-obsidian-cli
 
 MCP server for [Obsidian](https://obsidian.md), wrapping the official CLI (1.12+). Use it with Claude Desktop, Claude Code, or any MCP-compatible client to read, write, search, and manage your Obsidian vault.
 
@@ -13,13 +13,13 @@ MCP server for [Obsidian](https://obsidian.md), wrapping the official CLI (1.12+
 ### Claude Code
 
 ```bash
-claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- npx obsidian-mcp
+claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- npx mcp-obsidian-cli
 ```
 
 Or if installed locally:
 
 ```bash
-claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/obsidian-mcp/dist/index.js
+claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/mcp-obsidian-cli/dist/index.js
 ```
 
 ### Claude Desktop
@@ -31,7 +31,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "obsidian": {
       "command": "npx",
-      "args": ["obsidian-mcp"],
+      "args": ["mcp-obsidian-cli"],
       "env": {
         "OBSIDIAN_VAULT": "MyVault"
       }

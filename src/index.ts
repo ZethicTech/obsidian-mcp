@@ -10,7 +10,7 @@ import { allTools, handleToolCall } from "./tools.js";
 
 const server = new Server(
   {
-    name: "obsidian-mcp",
+    name: "mcp-obsidian-cli",
     version: "1.0.0",
   },
   {

@@ -1,11 +1,11 @@
 {
-  "name": "obsidian-mcp",
+  "name": "mcp-obsidian-cli",
   "version": "1.0.0",
   "description": "MCP server for Obsidian, wrapping the official CLI (1.12+)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "obsidian-mcp": "dist/index.js"
+    "mcp-obsidian-cli": "dist/index.js"
   },
   "files": [
     "dist"
