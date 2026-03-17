@@ -1,17 +1,40 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import type { CliResult } from "./types.js";
+
+// Well-known Obsidian CLI locations per platform
+const KNOWN_PATHS: Record<string, string[]> = {
+  darwin: [
+    "/Applications/Obsidian.app/Contents/MacOS/obsidian",
+    "/opt/homebrew/bin/obsidian",
+  ],
+  linux: [
+    "/usr/local/bin/obsidian",
+    `${process.env.HOME}/.local/bin/obsidian`,
+  ],
+  win32: [
+    `${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`,
+  ],
+};
 
 function getObsidianBinary(): string {
   const override = process.env.OBSIDIAN_CLI_PATH;
   if (override) return override;
 
-  switch (platform()) {
-    case "win32":
-      return "Obsidian.com";
-    default:
-      return "obsidian";
+  // Try bare command name first (works if it's in PATH)
+  const defaultName = platform() === "win32" ? "Obsidian.com" : "obsidian";
+
+  // Check well-known paths as fallback for environments with limited PATH
+  // (e.g. Claude Desktop doesn't source ~/.zprofile)
+  const candidates = KNOWN_PATHS[platform()] ?? [];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
+
+  return defaultName;
 }
 
 function getTimeout(): number {

@@ -108,20 +108,32 @@ Most tools accept two ways to target a file:
 - **`file`** — Wikilink-style name resolution (e.g., `"My Note"`)
 - **`path`** — Exact path from vault root (e.g., `"folder/My Note.md"`)
 
+## CLI auto-detection
+
+The server automatically finds the Obsidian CLI binary, even in environments with limited PATH (like Claude Desktop, which doesn't source `~/.zprofile`). It checks these well-known locations:
+
+| Platform | Locations checked |
+|----------|-------------------|
+| **macOS** | `/Applications/Obsidian.app/Contents/MacOS/obsidian`, `/opt/homebrew/bin/obsidian` |
+| **Linux** | `/usr/local/bin/obsidian`, `~/.local/bin/obsidian` |
+| **Windows** | `%LOCALAPPDATA%\Obsidian\Obsidian.com` |
+
+If your binary is elsewhere, set `OBSIDIAN_CLI_PATH` to its full path.
+
 ## Platform notes
 
-- **macOS**: CLI is added to PATH via `~/.zprofile`. Other shells need manual PATH config.
-- **Windows**: Uses `Obsidian.com` terminal redirector. Set `OBSIDIAN_CLI_PATH` if needed.
-- **Linux**: CLI is symlinked at `/usr/local/bin/obsidian` (or `~/.local/bin/obsidian`).
+- **macOS**: Obsidian registers the CLI in `~/.zprofile`. The server auto-detects the app bundle path, so no PATH config is needed.
+- **Windows**: Uses `Obsidian.com` terminal redirector for proper stdin/stdout.
+- **Linux**: CLI is symlinked at `/usr/local/bin/obsidian` (or `~/.local/bin/obsidian` as fallback).
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "Obsidian CLI not found" | Ensure Obsidian 1.12+ is installed and CLI is enabled in Settings → General → CLI |
+| "Obsidian CLI not found" | Ensure Obsidian 1.12+ is installed and CLI is enabled in Settings → General → CLI. If installed in a non-standard location, set `OBSIDIAN_CLI_PATH`. |
 | "Timed out" | Make sure the Obsidian app is running |
 | Wrong vault | Check `OBSIDIAN_VAULT` matches your vault name exactly |
-| Windows issues | Set `OBSIDIAN_CLI_PATH=Obsidian.com` or the full path to the redirector |
+| Windows issues | Set `OBSIDIAN_CLI_PATH` to the full path of `Obsidian.com` |
 
 ## License
 
