@@ -1,6 +1,6 @@
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { platform } from "node:os";
+import { homedir, platform, tmpdir } from "node:os";
 import type { CliResult } from "./types.js";
 
 // Well-known Obsidian CLI locations per platform
@@ -97,8 +97,22 @@ export async function runObsidianCli(
   const args = buildArgs(command, params, flags, vault);
   const timeout = getTimeout();
 
+  // On macOS, Obsidian's CLI finds the running app via a singleton socket in
+  // the user temp dir. Claude Desktop doesn't set TMPDIR, so os.tmpdir() falls
+  // back to /tmp (wrong). Use getconf to get the real per-user temp dir.
+  let resolvedTmpdir = process.env.TMPDIR ?? tmpdir();
+  if (platform() === "darwin" && resolvedTmpdir === "/tmp") {
+    try {
+      resolvedTmpdir = execFileSync("/usr/bin/getconf", ["DARWIN_USER_TEMP_DIR"], { encoding: "utf8" }).trim();
+    } catch { /* fall back to /tmp */ }
+  }
+  const env: NodeJS.ProcessEnv | undefined =
+    platform() === "darwin"
+      ? { ...process.env, TMPDIR: resolvedTmpdir, HOME: homedir() }
+      : undefined;
+
   return new Promise((resolve, reject) => {
-    execFile(binary, args, { timeout }, (error, stdout, stderr) => {
+    execFile(binary, args, { timeout, env }, (error, stdout, stderr) => {
       if (error) {
         const code = (error as NodeJS.ErrnoException).code;
 
