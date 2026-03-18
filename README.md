@@ -1,27 +1,37 @@
-# @zethictech/obsidian-mcp
+# Obsidian MCP
 
-MCP server for [Obsidian](https://obsidian.md), wrapping the official CLI (1.12+). Use it with Claude Desktop, Claude Code, or any MCP-compatible client to read, write, search, and manage your Obsidian vault.
+Connect Claude to your Obsidian vault to read, write, search, and manage notes — directly from Claude.
 
 ## Prerequisites
 
 - **Obsidian 1.12+** with the CLI enabled: Settings → General → CLI → Register
 - **Obsidian app must be running** (the CLI communicates with the app)
-- **Node.js 20+**
+
+---
 
 ## Setup
 
-### Claude Code
+Install the package from npm and configure Claude Desktop or Claude Code to use it. The MCP server runs locally on your machine and communicates with the Obsidian app via its CLI.
 
-```bash
-claude mcp add obsidian \
-  --command npx \
-  --args "-y" "@zethictech/obsidian-mcp" \
-  --env OBSIDIAN_VAULT=MyVault
+### How it works
+
 ```
+Your machine
+┌─────────────────────────────┐
+│ Claude Desktop / Claude Code│
+│   ↕ stdio (stdin/stdout)    │
+│ obsidian-mcp (Node.js)      │ ──CLI──→  Obsidian App (running)
+└─────────────────────────────┘
+```
+
+Each user runs the server locally via `npx`. The server receives tool calls from Claude over stdio and executes Obsidian CLI commands against the running app.
 
 ### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
+
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -37,39 +47,28 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-### Local checkout (alternative)
+Restart Claude Desktop after saving.
 
-If you prefer to run from a local clone:
+### Claude Code
 
 ```bash
-claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/obsidian-mcp/dist/bin/obsidian-mcp.js
+claude mcp add obsidian \
+  --command npx \
+  --args "@zethictech/obsidian-mcp" \
+  --env OBSIDIAN_VAULT=MyVault
 ```
 
-Or for Claude Desktop, point directly at the node binary:
+### Environment Variables
 
-```json
-{
-  "mcpServers": {
-    "obsidian": {
-      "command": "node",
-      "args": ["/path/to/obsidian-mcp/dist/bin/obsidian-mcp.js"],
-      "env": {
-        "OBSIDIAN_VAULT": "MyVault"
-      }
-    }
-  }
-}
-```
+| Variable | Required | Description |
+| -------- | -------- | ----------- |
+| `OBSIDIAN_VAULT` | Yes | Vault name or ID |
+| `OBSIDIAN_CLI_PATH` | No | Override path to `obsidian` binary (auto-detected by default) |
+| `OBSIDIAN_TIMEOUT` | No | CLI timeout in milliseconds (default: `30000`) |
 
-## Configuration
+---
 
-| Environment Variable | Required | Default | Description |
-|---------------------|----------|---------|-------------|
-| `OBSIDIAN_VAULT` | Yes | — | Vault name or ID |
-| `OBSIDIAN_CLI_PATH` | No | Auto-detect | Override path to `obsidian` binary |
-| `OBSIDIAN_TIMEOUT` | No | `30000` | CLI timeout in milliseconds |
-
-## Tools
+## Available Tools (34)
 
 ### Read-only tools (20)
 
@@ -122,40 +121,7 @@ Or for Claude Desktop, point directly at the node binary:
 
 > **`run_command`** is an escape hatch that gives you access to all ~100 CLI commands not covered by the structured tools above (sync, plugins, themes, templates, workspaces, publish, dev tools, etc.). Use `get_help` to discover available commands.
 
-## File targeting
-
-Most tools accept two ways to target a file:
-
-- **`file`** — Wikilink-style name resolution (e.g., `"My Note"`)
-- **`path`** — Exact path from vault root (e.g., `"folder/My Note.md"`)
-
-## CLI auto-detection
-
-The server automatically finds the Obsidian CLI binary, even in environments with limited PATH (like Claude Desktop, which doesn't source `~/.zprofile`). It checks these well-known locations:
-
-| Platform | Locations checked |
-|----------|-------------------|
-| **macOS** | `/Applications/Obsidian.app/Contents/MacOS/obsidian`, `/opt/homebrew/bin/obsidian` |
-| **Linux** | `/usr/local/bin/obsidian`, `~/.local/bin/obsidian` |
-| **Windows** | `%LOCALAPPDATA%\Obsidian\Obsidian.com` |
-
-If your binary is elsewhere, set `OBSIDIAN_CLI_PATH` to its full path.
-
-## Platform notes
-
-- **macOS**: The server auto-detects the Obsidian app bundle and resolves the correct user temp directory (needed for the CLI's IPC socket), so no extra PATH or environment config is needed.
-- **Windows**: Uses `Obsidian.com` terminal redirector for proper stdin/stdout.
-- **Linux**: CLI is symlinked at `/usr/local/bin/obsidian` (or `~/.local/bin/obsidian` as fallback).
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Obsidian CLI not found" | Ensure Obsidian 1.12+ is installed and CLI is enabled in Settings → General → CLI. If installed in a non-standard location, set `OBSIDIAN_CLI_PATH`. |
-| "Timed out" | Make sure the Obsidian app is running |
-| Tools return empty results | Make sure the Obsidian app is running — the CLI communicates with the live app process |
-| Wrong vault | Check `OBSIDIAN_VAULT` matches your vault name exactly |
-| Windows issues | Set `OBSIDIAN_CLI_PATH` to the full path of `Obsidian.com` |
+---
 
 ## License
 
