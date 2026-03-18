@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -11,13 +9,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { allTools, handleToolCall } from "./tools.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8"));
+const { name, version } = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
 
 const server = new Server(
   {
-    name: pkg.name,
-    version: pkg.version,
+    name,
+    version,
   },
   {
     capabilities: {
