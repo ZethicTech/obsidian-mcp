@@ -1,47 +1,56 @@
 {
-  "name": "mcp-obsidian-cli",
+  "name": "@zethictech/obsidian-mcp",
   "version": "1.0.0",
   "description": "MCP server for Obsidian, wrapping the official CLI (1.12+)",
-  "author": "ZethicTech",
+  "author": {
+    "name": "ZethicTech",
+    "url": "https://github.com/ZethicTech"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "obsidian-mcp": "dist/bin/obsidian-mcp.js"
+  },
+  "main": "./dist/src/index.js",
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZethicTech/obsidian-mcp.git"
+    "url": "https://github.com/ZethicTech/obsidian-mcp.git"
   },
   "homepage": "https://github.com/ZethicTech/obsidian-mcp#readme",
   "bugs": {
     "url": "https://github.com/ZethicTech/obsidian-mcp/issues"
   },
-  "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "mcp-obsidian-cli": "dist/index.js"
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "start": "node dist/index.js",
+    "build": "tsup",
+    "dev": "tsx bin/obsidian-mcp.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.0.0"
   },
   "keywords": [
     "obsidian",
     "mcp",
+    "mcp-server",
     "model-context-protocol",
     "cli",
     "claude",
+    "anthropic",
     "ai"
   ],
-  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.5.0"
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
   }
 }

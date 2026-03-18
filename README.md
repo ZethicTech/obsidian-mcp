@@ -1,4 +1,4 @@
-# mcp-obsidian-cli
+# @zethictech/obsidian-mcp
 
 MCP server for [Obsidian](https://obsidian.md), wrapping the official CLI (1.12+). Use it with Claude Desktop, Claude Code, or any MCP-compatible client to read, write, search, and manage your Obsidian vault.
 
@@ -6,32 +6,29 @@ MCP server for [Obsidian](https://obsidian.md), wrapping the official CLI (1.12+
 
 - **Obsidian 1.12+** with the CLI enabled: Settings → General → CLI → Register
 - **Obsidian app must be running** (the CLI communicates with the app)
-- **Node.js 18+**
+- **Node.js 20+**
 
 ## Setup
 
 ### Claude Code
 
 ```bash
-claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- npx mcp-obsidian-cli
-```
-
-Or if installed locally:
-
-```bash
-claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/mcp-obsidian-cli/dist/index.js
+claude mcp add obsidian \
+  --command npx \
+  --args "-y" "@zethictech/obsidian-mcp" \
+  --env OBSIDIAN_VAULT=MyVault
 ```
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`. Claude Desktop doesn't source your shell profile, so use the full path to `npx` (find it with `which npx`):
+Add to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "obsidian": {
-      "command": "/opt/homebrew/bin/npx",
-      "args": ["mcp-obsidian-cli"],
+      "command": "npx",
+      "args": ["-y", "@zethictech/obsidian-mcp"],
       "env": {
         "OBSIDIAN_VAULT": "MyVault"
       }
@@ -40,14 +37,22 @@ Add to your `claude_desktop_config.json`. Claude Desktop doesn't source your she
 }
 ```
 
-Common `npx` locations: `/opt/homebrew/bin/npx` (Homebrew), `/usr/local/bin/npx` (nvm/system). Or point directly at the `node` binary and a local checkout:
+### Local checkout (alternative)
+
+If you prefer to run from a local clone:
+
+```bash
+claude mcp add obsidian -e OBSIDIAN_VAULT=MyVault -- node /path/to/obsidian-mcp/dist/bin/obsidian-mcp.js
+```
+
+Or for Claude Desktop, point directly at the node binary:
 
 ```json
 {
   "mcpServers": {
     "obsidian": {
-      "command": "/opt/homebrew/bin/node",
-      "args": ["/path/to/mcp-obsidian-cli/dist/index.js"],
+      "command": "node",
+      "args": ["/path/to/obsidian-mcp/dist/bin/obsidian-mcp.js"],
       "env": {
         "OBSIDIAN_VAULT": "MyVault"
       }
