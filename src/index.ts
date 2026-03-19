@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -7,7 +6,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { allTools, handleToolCall } from "./tools.js";
 
-const { name, version } = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
+const name = process.env.PKG_NAME!;
+const version = process.env.PKG_VERSION!;
 
 const server = new Server(
   {
