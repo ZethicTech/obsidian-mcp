@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { isObsidianRunning, runObsidianCli } from "../cli.js";
+import { runObsidianCli } from "../cli.js";
 import { toolSchemas } from "../schemas.js";
 import {
   allTools,
@@ -12,17 +12,11 @@ import {
   writeTools,
 } from "../tools.js";
 
-vi.mock("../cli.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../cli.js")>();
-  return {
-    ...actual,
-    runObsidianCli: vi.fn(),
-    isObsidianRunning: vi.fn(() => true),
-  };
-});
+vi.mock("../cli.js", () => ({
+  runObsidianCli: vi.fn(),
+}));
 
 const mockRunCli = vi.mocked(runObsidianCli);
-const mockIsRunning = vi.mocked(isObsidianRunning);
 
 describe("tool definitions", () => {
   it("has no duplicate tool names", () => {
@@ -103,15 +97,6 @@ describe("handleToolCall routing", () => {
   beforeEach(() => {
     mockRunCli.mockReset();
     mockRunCli.mockResolvedValue({ stdout: "ok", stderr: "" });
-    mockIsRunning.mockReturnValue(true);
-  });
-
-  it("returns isError when Obsidian is not running", async () => {
-    mockIsRunning.mockReturnValue(false);
-    const result = await handleToolCall("read_note", { file: "Test" });
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Obsidian is not running");
-    expect(mockRunCli).not.toHaveBeenCalled();
   });
 
   it("routes known tool to correct CLI command", async () => {

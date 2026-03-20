@@ -2,9 +2,9 @@
 
 Access your Obsidian vault from **Claude Desktop**, **Claude Code**, and other AI tools that support the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 34 tools, resources, and prompt templates.
+Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 34 tools and prompt templates.
 
-**Features:** read/write/search notes, manage properties and tasks, browse vault resources, run pre-built prompt workflows — all validated with Zod schemas and powered by the official Obsidian CLI.
+**Features:** read/write/search notes, manage properties and tasks, run pre-built prompt workflows — all validated with Zod schemas and powered by the official Obsidian CLI.
 
 ## Prerequisites
 
@@ -129,17 +129,6 @@ claude mcp add obsidian npx @zethictech/obsidian-mcp --env OBSIDIAN_VAULT="My Va
 > **`run_command`** is an escape hatch that gives you access to all ~100 CLI commands not covered by the structured tools above (sync, plugins, themes, templates, workspaces, publish, dev tools, etc.). Use `get_help` to discover available commands.
 
 All tool inputs are validated at runtime using [Zod](https://zod.dev/) schemas. Invalid inputs return clear error messages before any CLI command is executed.
-
----
-
-## Resources
-
-Vault files are exposed as [MCP Resources](https://modelcontextprotocol.io/specification/2025-11-25/server/resources), allowing clients to include vault content directly in LLM context.
-
-- **URI format:** `obsidian://{vault}/{path}` (e.g., `obsidian://MyVault/Projects/readme.md`)
-- **Pagination:** Large vaults are paginated automatically (100 files per page)
-- **MIME types:** Detected automatically for common file types (`.md`, `.json`, `.txt`, `.png`, `.pdf`, etc.)
-- **Resource templates:** Clients can use `obsidian://{vault}/{path}` as a template for dynamic access
 
 ---
 

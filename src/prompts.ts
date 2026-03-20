@@ -1,4 +1,4 @@
-import { NOT_RUNNING_MESSAGE, assertCliSuccess, isObsidianRunning, runObsidianCli } from "./cli.js";
+import { assertCliSuccess, runObsidianCli } from "./cli.js";
 
 // ─── Prompt definitions ──────────────────────────────────────────
 
@@ -54,10 +54,6 @@ export function listPrompts(): { prompts: PromptDefinition[] } {
 }
 
 export async function getPrompt(name: string, args: Record<string, string>): Promise<{ messages: PromptMessage[] }> {
-  if (!isObsidianRunning()) {
-    throw new Error(NOT_RUNNING_MESSAGE);
-  }
-
   switch (name) {
     case "analyze_vault":
       return analyzeVault();

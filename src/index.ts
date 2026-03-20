@@ -4,14 +4,10 @@ import {
   CallToolRequestSchema,
   GetPromptRequestSchema,
   ListPromptsRequestSchema,
-  ListResourceTemplatesRequestSchema,
-  ListResourcesRequestSchema,
   ListToolsRequestSchema,
-  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { getPrompt, listPrompts } from "./prompts.js";
-import { listResourceTemplates, listResources, readResource } from "./resources.js";
 import { allTools, handleToolCall } from "./tools.js";
 
 const name = process.env.PKG_NAME!;
@@ -25,7 +21,6 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
-      resources: {},
       prompts: {},
     },
   },
@@ -53,20 +48,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
           }
         : undefined,
   });
-});
-
-// ─── Resources ────────────────────────────────────────────────────
-
-server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
-  return listResources(request.params?.cursor);
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  return readResource(request.params.uri);
-});
-
-server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
-  return listResourceTemplates();
 });
 
 // ─── Prompts ──────────────────────────────────────────────────────
