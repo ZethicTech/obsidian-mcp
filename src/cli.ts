@@ -142,17 +142,21 @@ export async function runObsidianCli(
         }
 
         // Non-zero exit code — return stderr as error info
-        resolve({
-          stdout: stdout?.trim() ?? "",
-          stderr: stderr?.trim() ?? error.message,
-        });
+        const out = stdout?.trim() ?? "";
+        if (out.includes("Loaded main app package")) {
+          reject(new Error("Obsidian is starting up. Please wait a moment and try again."));
+          return;
+        }
+        resolve({ stdout: out, stderr: stderr?.trim() ?? error.message });
         return;
       }
 
-      resolve({
-        stdout: stdout?.trim() ?? "",
-        stderr: stderr?.trim() ?? "",
-      });
+      const out = stdout?.trim() ?? "";
+      if (out.includes("Loaded main app package")) {
+        reject(new Error("Obsidian is starting up. Please wait a moment and try again."));
+        return;
+      }
+      resolve({ stdout: out, stderr: stderr?.trim() ?? "" });
     });
 
     // Support cancellation via AbortSignal

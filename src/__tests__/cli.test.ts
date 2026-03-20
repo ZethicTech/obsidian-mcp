@@ -261,4 +261,13 @@ describe("runObsidianCli", () => {
     const result = await runObsidianCli("read", {}, undefined, undefined, undefined);
     expect(result.stdout).toBe("ok");
   });
+
+  it("rejects with startup message when Obsidian returns app launch logs", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "Loaded main app package /some/path", "");
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is starting up");
+  });
 });
