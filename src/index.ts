@@ -2,12 +2,15 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
+import { getPrompt, listPrompts } from "./prompts.js";
 import { listResourceTemplates, listResources, readResource } from "./resources.js";
 import { allTools, handleToolCall } from "./tools.js";
 
@@ -23,6 +26,7 @@ const server = new Server(
     capabilities: {
       tools: {},
       resources: {},
+      prompts: {},
     },
   },
 );
@@ -57,6 +61,16 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
   return listResourceTemplates();
+});
+
+// ─── Prompts ──────────────────────────────────────────────────────
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  return listPrompts();
+});
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  return getPrompt(request.params.name, (request.params.arguments ?? {}) as Record<string, string>);
 });
 
 // ─── Start ────────────────────────────────────────────────────────
