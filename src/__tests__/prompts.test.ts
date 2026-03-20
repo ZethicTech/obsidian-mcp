@@ -62,4 +62,16 @@ describe("getPrompt", () => {
     const result = await getPrompt("daily_review", {});
     expect(result.messages).toHaveLength(1);
   });
+
+  it("returns messages for suggest_links", async () => {
+    const result = await getPrompt("suggest_links", { file: "ideas.md" });
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe("user");
+    expect(result.messages[0].content.text).toContain("ideas.md");
+    expect(result.messages[0].content.text).toContain("wikilinks");
+  });
+
+  it("throws when suggest_links is called without file argument", async () => {
+    await expect(getPrompt("suggest_links", {})).rejects.toThrow("Missing required argument");
+  });
 });

@@ -220,4 +220,45 @@ describe("runObsidianCli", () => {
 
     await runObsidianCli("read", {});
   });
+
+  it("rejects with 'Operation cancelled' when signal is pre-aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    mockExecFile.mockImplementation((_bin, _args, _opts, _cb) => {
+      return { kill: vi.fn() } as unknown as ReturnType<typeof execFile>;
+    });
+
+    await expect(runObsidianCli("read", {}, undefined, undefined, { signal: controller.signal })).rejects.toThrow(
+      "Operation cancelled",
+    );
+  });
+
+  it("rejects with 'Operation cancelled' when signal fires during execution", async () => {
+    const controller = new AbortController();
+    const killFn = vi.fn();
+
+    mockExecFile.mockImplementation((_bin, _args, _opts, _cb) => {
+      // Don't call callback — simulate a pending operation
+      return { kill: killFn } as unknown as ReturnType<typeof execFile>;
+    });
+
+    const promise = runObsidianCli("read", {}, undefined, undefined, { signal: controller.signal });
+
+    // Abort after starting
+    controller.abort();
+
+    await expect(promise).rejects.toThrow("Operation cancelled");
+    expect(killFn).toHaveBeenCalled();
+  });
+
+  it("works normally when no signal is provided", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "ok", "");
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const result = await runObsidianCli("read", {}, undefined, undefined, undefined);
+    expect(result.stdout).toBe("ok");
+  });
 });

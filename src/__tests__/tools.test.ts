@@ -171,6 +171,56 @@ describe("Zod validation", () => {
   });
 });
 
+describe("progress and cancellation", () => {
+  beforeEach(() => {
+    mockRunCli.mockReset();
+    mockRunCli.mockResolvedValue({ stdout: "ok", stderr: "" });
+  });
+
+  it("calls onProgress with (0,1) then (1,1) on success", async () => {
+    const onProgress = vi.fn();
+    await handleToolCall("read_note", { file: "Test" }, { onProgress });
+    expect(onProgress).toHaveBeenCalledTimes(2);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 0, 1);
+    expect(onProgress).toHaveBeenNthCalledWith(2, 1, 1);
+  });
+
+  it("does not call onProgress when not provided", async () => {
+    await handleToolCall("read_note", { file: "Test" });
+    // No error thrown — onProgress is safely skipped
+  });
+
+  it("passes signal through to runObsidianCli", async () => {
+    const controller = new AbortController();
+    await handleToolCall("read_note", { file: "Test" }, { signal: controller.signal });
+    expect(mockRunCli).toHaveBeenCalledWith(
+      "read",
+      { file: "Test" },
+      [],
+      undefined,
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+});
+
+describe("Zod enum validation", () => {
+  beforeEach(() => {
+    mockRunCli.mockReset();
+    mockRunCli.mockResolvedValue({ stdout: "ok", stderr: "" });
+  });
+
+  it("rejects invalid enum value for format field", async () => {
+    const result = await handleToolCall("search", { query: "test", format: "xml" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Invalid input");
+  });
+
+  it("accepts valid enum value for format field", async () => {
+    const result = await handleToolCall("search", { query: "test", format: "json" });
+    expect(result.isError).toBeUndefined();
+  });
+});
+
 describe("booleanFlags set", () => {
   it("contains expected flags", () => {
     const expected = ["total", "counts", "verbose", "done", "todo", "permanent", "overwrite", "toggle"];
