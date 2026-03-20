@@ -1,6 +1,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
+
 import type { CliResult } from "./types.js";
 
 const IS_MACOS = platform() === "darwin";
@@ -15,24 +16,18 @@ const MACOS_ENV: NodeJS.ProcessEnv | undefined = (() => {
   if (tmpdir === "/tmp") {
     try {
       tmpdir = execFileSync("/usr/bin/getconf", ["DARWIN_USER_TEMP_DIR"], { encoding: "utf8" }).trim();
-    } catch { /* fall back to /tmp */ }
+    } catch {
+      /* fall back to /tmp */
+    }
   }
   return { ...process.env, TMPDIR: tmpdir, HOME: homedir() };
 })();
 
 // Well-known Obsidian CLI locations per platform
 const KNOWN_PATHS: Record<string, string[]> = {
-  darwin: [
-    "/Applications/Obsidian.app/Contents/MacOS/obsidian",
-    "/opt/homebrew/bin/obsidian",
-  ],
-  linux: [
-    "/usr/local/bin/obsidian",
-    `${process.env.HOME}/.local/bin/obsidian`,
-  ],
-  win32: [
-    `${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`,
-  ],
+  darwin: ["/Applications/Obsidian.app/Contents/MacOS/obsidian", "/opt/homebrew/bin/obsidian"],
+  linux: ["/usr/local/bin/obsidian", `${process.env.HOME}/.local/bin/obsidian`],
+  win32: [`${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`],
 };
 
 function getObsidianBinary(): string {
@@ -104,18 +99,29 @@ export function buildArgs(
   return args;
 }
 
+export function assertCliSuccess(result: CliResult): void {
+  if (result.stderr && !result.stdout) {
+    throw new Error(result.stderr);
+  }
+}
+
+export interface CliOptions {
+  signal?: AbortSignal;
+}
+
 export async function runObsidianCli(
   command: string,
   params?: Record<string, unknown>,
   flags?: string[],
   vault?: string,
+  options?: CliOptions,
 ): Promise<CliResult> {
   const binary = getObsidianBinary();
   const args = buildArgs(command, params, flags, vault);
   const timeout = getTimeout();
 
   return new Promise((resolve, reject) => {
-    execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
+    const child = execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
       if (error) {
         const code = (error as NodeJS.ErrnoException).code;
 
@@ -131,11 +137,7 @@ export async function runObsidianCli(
         }
 
         if (error.killed) {
-          reject(
-            new Error(
-              `Obsidian CLI timed out after ${timeout}ms. Is the Obsidian app running?`,
-            ),
-          );
+          reject(new Error(`Obsidian CLI timed out after ${timeout}ms. Is the Obsidian app running?`));
           return;
         }
 
@@ -152,5 +154,22 @@ export async function runObsidianCli(
         stderr: stderr?.trim() ?? "",
       });
     });
+
+    // Support cancellation via AbortSignal
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        child.kill();
+        reject(new Error("Operation cancelled"));
+        return;
+      }
+      options.signal.addEventListener(
+        "abort",
+        () => {
+          child.kill();
+          reject(new Error("Operation cancelled"));
+        },
+        { once: true },
+      );
+    }
   });
 }
