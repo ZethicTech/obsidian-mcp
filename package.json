@@ -1,6 +1,6 @@
 {
   "name": "@zethictech/obsidian-mcp",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Access your Obsidian vault from Claude Desktop and other AI tools — MCP server wrapping the official Obsidian CLI with tools, resources, and prompts",
   "author": {
     "name": "ZethicTech",
