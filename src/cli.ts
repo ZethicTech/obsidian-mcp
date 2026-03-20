@@ -121,7 +121,12 @@ export async function runObsidianCli(
   const timeout = getTimeout();
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+
     const child = execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
+      if (settled) return;
+      settled = true;
+
       if (error) {
         const code = (error as NodeJS.ErrnoException).code;
 
@@ -144,7 +149,7 @@ export async function runObsidianCli(
         // Non-zero exit code — return stderr as error info
         const out = stdout?.trim() ?? "";
         if (out.includes("Loaded main app package")) {
-          reject(new Error("Obsidian is starting up. Please wait a moment and try again."));
+          reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
           return;
         }
         resolve({ stdout: out, stderr: stderr?.trim() ?? error.message });
@@ -153,24 +158,41 @@ export async function runObsidianCli(
 
       const out = stdout?.trim() ?? "";
       if (out.includes("Loaded main app package")) {
-        reject(new Error("Obsidian is starting up. Please wait a moment and try again."));
+        reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
         return;
       }
       resolve({ stdout: out, stderr: stderr?.trim() ?? "" });
     });
 
+    // Detect startup logs in real-time (~1-2s) instead of waiting for 30s timeout.
+    // When the CLI launches a new Electron instance instead of connecting to a
+    // running one, it emits "Loaded main app package" to stdout almost immediately.
+    child.stdout?.on("data", (chunk: Buffer) => {
+      if (!settled && chunk.toString().includes("Loaded main app package")) {
+        settled = true;
+        child.kill();
+        reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
+      }
+    });
+
     // Support cancellation via AbortSignal
     if (options?.signal) {
       if (options.signal.aborted) {
-        child.kill();
-        reject(new Error("Operation cancelled"));
+        if (!settled) {
+          settled = true;
+          child.kill();
+          reject(new Error("Operation cancelled"));
+        }
         return;
       }
       options.signal.addEventListener(
         "abort",
         () => {
-          child.kill();
-          reject(new Error("Operation cancelled"));
+          if (!settled) {
+            settled = true;
+            child.kill();
+            reject(new Error("Operation cancelled"));
+          }
         },
         { once: true },
       );
