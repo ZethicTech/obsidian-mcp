@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { runObsidianCli } from "./cli.js";
-import type { CliOptions } from "./cli.js";
 import { toolSchemas } from "./schemas.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -20,352 +19,155 @@ interface ToolMeta {
   annotations: ToolDefinition["annotations"];
 }
 
+// Shared annotation bases — only title and per-tool overrides vary
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
+const DESTRUCTIVE = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const;
+
 const toolMeta: Record<string, ToolMeta> = {
   // Read-only tools
   read_note: {
     description: "Read the full content of a note. Provide either file (wikilink name) or path (exact vault path).",
-    annotations: {
-      title: "Read Note",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Read Note", ...READ_ONLY },
   },
   get_file_info: {
     description: "Get metadata about a file (size, dates, type).",
-    annotations: {
-      title: "Get File Info",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get File Info", ...READ_ONLY },
   },
   list_files: {
     description: "List files in the vault, optionally filtered by folder or extension.",
-    annotations: {
-      title: "List Files",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "List Files", ...READ_ONLY },
   },
-  list_folders: {
-    description: "List folders in the vault.",
-    annotations: {
-      title: "List Folders",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-  },
+  list_folders: { description: "List folders in the vault.", annotations: { title: "List Folders", ...READ_ONLY } },
   search: {
     description: "Search the vault for text matching a query.",
-    annotations: {
-      title: "Search",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Search", ...READ_ONLY },
   },
   search_with_context: {
     description: "Search the vault with surrounding line context for each match.",
-    annotations: {
-      title: "Search with Context",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Search with Context", ...READ_ONLY },
   },
   get_backlinks: {
     description: "List all notes that link to the specified note (incoming links).",
-    annotations: {
-      title: "Get Backlinks",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Backlinks", ...READ_ONLY },
   },
   get_links: {
     description: "List all outgoing links from the specified note.",
-    annotations: {
-      title: "Get Links",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Links", ...READ_ONLY },
   },
   find_unresolved_links: {
     description: "Find all broken/unresolved links in the vault.",
-    annotations: {
-      title: "Find Unresolved Links",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Find Unresolved Links", ...READ_ONLY },
   },
   find_orphan_notes: {
     description: "Find notes with no incoming links (orphans).",
-    annotations: {
-      title: "Find Orphan Notes",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Find Orphan Notes", ...READ_ONLY },
   },
   get_outline: {
     description: "Get the heading structure/outline of a note.",
-    annotations: {
-      title: "Get Outline",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Outline", ...READ_ONLY },
   },
   get_properties: {
     description: "List properties (frontmatter) of a note or across the vault.",
-    annotations: {
-      title: "Get Properties",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Properties", ...READ_ONLY },
   },
   read_property: {
     description: "Read the value of a specific property from a note.",
-    annotations: {
-      title: "Read Property",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Read Property", ...READ_ONLY },
   },
   list_tags: {
     description: "List tags used in the vault or a specific note.",
-    annotations: {
-      title: "List Tags",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "List Tags", ...READ_ONLY },
   },
   list_tasks: {
     description: "List tasks (checkboxes) in the vault or a specific note.",
-    annotations: {
-      title: "List Tasks",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "List Tasks", ...READ_ONLY },
   },
   daily_read: {
     description: "Read today's daily note content.",
-    annotations: {
-      title: "Read Daily Note",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Read Daily Note", ...READ_ONLY },
   },
   daily_path: {
     description: "Get the expected file path for today's daily note.",
-    annotations: {
-      title: "Daily Note Path",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Daily Note Path", ...READ_ONLY },
   },
   get_vault_info: {
     description: "Get information about the current vault (name, path, file count, size).",
-    annotations: {
-      title: "Get Vault Info",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Vault Info", ...READ_ONLY },
   },
   wordcount: {
     description: "Count words and/or characters in a note.",
-    annotations: {
-      title: "Word Count",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Word Count", ...READ_ONLY },
   },
   get_help: {
     description: "Get help for Obsidian CLI commands. Omit command for the full command list.",
-    annotations: {
-      title: "Get Help",
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Get Help", ...READ_ONLY },
   },
   // Write tools
   create_note: {
     description: "Create a new note. Can optionally use a template and set initial content.",
-    annotations: {
-      title: "Create Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Create Note", ...WRITE },
   },
   append_note: {
     description: "Append content to the end of a note.",
-    annotations: {
-      title: "Append to Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Append to Note", ...WRITE },
   },
   prepend_note: {
     description: "Prepend content to a note (after frontmatter).",
-    annotations: {
-      title: "Prepend to Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Prepend to Note", ...WRITE },
   },
   set_property: {
     description: "Set a frontmatter property on a note.",
-    annotations: {
-      title: "Set Property",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Set Property", ...WRITE, idempotentHint: true },
   },
   daily_create: {
     description: "Open/create today's daily note in Obsidian.",
-    annotations: {
-      title: "Create Daily Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Create Daily Note", ...WRITE, idempotentHint: true },
   },
   daily_append: {
     description: "Append content to today's daily note.",
-    annotations: {
-      title: "Append to Daily Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Append to Daily Note", ...WRITE },
   },
   daily_prepend: {
     description: "Prepend content to today's daily note (after frontmatter).",
-    annotations: {
-      title: "Prepend to Daily Note",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Prepend to Daily Note", ...WRITE },
   },
   update_task: {
     description: "Update a task's status (toggle, mark done/todo, or set custom status).",
-    annotations: {
-      title: "Update Task",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Update Task", ...WRITE, idempotentHint: true },
   },
   add_bookmark: {
     description: "Add a bookmark to a file, folder, search, or URL.",
-    annotations: {
-      title: "Add Bookmark",
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Add Bookmark", ...WRITE },
   },
   // Destructive tools
   move_note: {
     description: "Move or rename a note to a new path. Automatically updates all links.",
-    annotations: {
-      title: "Move Note",
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Move Note", ...DESTRUCTIVE },
   },
   rename_note: {
     description: "Rename a note (preserves extension). Updates all links.",
-    annotations: {
-      title: "Rename Note",
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Rename Note", ...DESTRUCTIVE },
   },
   delete_note: {
     description: "Delete a note. By default moves to trash; use permanent=true to skip trash.",
-    annotations: {
-      title: "Delete Note",
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Delete Note", ...DESTRUCTIVE },
   },
   remove_property: {
     description: "Remove a frontmatter property from a note.",
-    annotations: {
-      title: "Remove Property",
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: { title: "Remove Property", ...DESTRUCTIVE, idempotentHint: true },
   },
   run_command: {
     description:
       "Run any Obsidian CLI command directly. Use get_help to discover available commands. " +
       "This is an escape hatch for the ~80 CLI commands not exposed as dedicated tools " +
       "(sync, plugins, themes, templates, workspaces, publish, dev tools, etc.).",
-    annotations: {
-      title: "Run CLI Command",
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: { title: "Run CLI Command", ...DESTRUCTIVE },
   },
 };
 
@@ -503,19 +305,7 @@ export async function handleToolCall(
   options?: HandleToolCallOptions,
 ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }> {
   try {
-    // Validate input against Zod schema
-    const schema = toolSchemas[toolName];
-    if (schema) {
-      const result = schema.safeParse(args);
-      if (!result.success) {
-        const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-        return {
-          content: [{ type: "text", text: `Invalid input: ${issues}` }],
-          isError: true,
-        };
-      }
-    }
-
+    // Resolve command before validation to fail fast on unknown tools
     let command: string;
     let params: Record<string, unknown>;
     let flags: string[] | undefined;
@@ -548,15 +338,23 @@ export async function handleToolCall(
       }
     }
 
+    // Validate input against Zod schema
+    const schema = toolSchemas[toolName];
+    if (schema) {
+      const result = schema.safeParse(args);
+      if (!result.success) {
+        const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+        return {
+          content: [{ type: "text", text: `Invalid input: ${issues}` }],
+          isError: true,
+        };
+      }
+    }
+
     // Emit progress: starting
     options?.onProgress?.(0, 1);
 
-    const cliOptions: CliOptions = {};
-    if (options?.signal) {
-      cliOptions.signal = options.signal;
-    }
-
-    const result = await runObsidianCli(command, params, flags, undefined, cliOptions);
+    const result = await runObsidianCli(command, params, flags, undefined, { signal: options?.signal });
 
     // Emit progress: complete
     options?.onProgress?.(1, 1);

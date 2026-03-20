@@ -99,6 +99,12 @@ export function buildArgs(
   return args;
 }
 
+export function assertCliSuccess(result: CliResult): void {
+  if (result.stderr && !result.stdout) {
+    throw new Error(result.stderr);
+  }
+}
+
 export interface CliOptions {
   signal?: AbortSignal;
 }

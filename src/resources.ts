@@ -1,4 +1,4 @@
-import { runObsidianCli } from "./cli.js";
+import { assertCliSuccess, runObsidianCli } from "./cli.js";
 
 const MIME_MAP: Record<string, string> = {
   md: "text/markdown",
@@ -91,9 +91,7 @@ export async function readResource(uri: string): Promise<{
 
   const result = await runObsidianCli("read", { path });
 
-  if (result.stderr && !result.stdout) {
-    throw new Error(result.stderr);
-  }
+  assertCliSuccess(result);
 
   return {
     contents: [

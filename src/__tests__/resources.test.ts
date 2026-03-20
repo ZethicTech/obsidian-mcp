@@ -3,9 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runObsidianCli } from "../cli.js";
 import { listResourceTemplates, listResources, readResource } from "../resources.js";
 
-vi.mock("../cli.js", () => ({
-  runObsidianCli: vi.fn(),
-}));
+vi.mock("../cli.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../cli.js")>();
+  return {
+    ...actual,
+    runObsidianCli: vi.fn(),
+  };
+});
 
 const mockRunCli = vi.mocked(runObsidianCli);
 

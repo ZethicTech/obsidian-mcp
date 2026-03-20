@@ -29,22 +29,17 @@ export const listFoldersSchema = z.object({
   total: totalFlag,
 });
 
-export const searchSchema = z.object({
+const searchBase = z.object({
   query: z.string().describe("Search query"),
   path: z.string().optional().describe("Limit to path"),
   limit: z.number().optional().describe("Max results"),
   format: formatTextJson,
-  total: totalFlag,
   case: z.boolean().optional().describe("Case-sensitive search"),
 });
 
-export const searchWithContextSchema = z.object({
-  query: z.string().describe("Search query"),
-  path: z.string().optional().describe("Limit to path"),
-  limit: z.number().optional().describe("Max results"),
-  format: formatTextJson,
-  case: z.boolean().optional().describe("Case-sensitive search"),
-});
+export const searchSchema = searchBase.extend({ total: totalFlag });
+
+export const searchWithContextSchema = searchBase;
 
 export const getBacklinksSchema = z.object({
   ...fileOrPath,

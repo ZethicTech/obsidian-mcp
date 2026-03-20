@@ -1,4 +1,4 @@
-import { runObsidianCli } from "./cli.js";
+import { assertCliSuccess, runObsidianCli } from "./cli.js";
 
 // ─── Prompt definitions ──────────────────────────────────────────
 
@@ -111,9 +111,7 @@ async function summarizeNote(file: string): Promise<{ messages: PromptMessage[] 
   if (!file) throw new Error("Missing required argument: file");
 
   const result = await runObsidianCli("read", { file });
-  if (result.stderr && !result.stdout) {
-    throw new Error(result.stderr);
-  }
+  assertCliSuccess(result);
 
   return {
     messages: [
@@ -196,9 +194,7 @@ async function suggestLinks(file: string): Promise<{ messages: PromptMessage[] }
     runObsidianCli("links", { file }),
   ]);
 
-  if (note.stderr && !note.stdout) {
-    throw new Error(note.stderr);
-  }
+  assertCliSuccess(note);
 
   const context = [
     `## Content of "${file}"`,

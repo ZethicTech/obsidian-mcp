@@ -34,14 +34,7 @@ const server = new Server(
 // ─── Tools ────────────────────────────────────────────────────────
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: allTools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-      annotations: tool.annotations,
-    })),
-  };
+  return { tools: allTools };
 });
 
 server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
