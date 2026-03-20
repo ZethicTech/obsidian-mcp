@@ -1,7 +1,14 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CallToolRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
+import { listResourceTemplates, listResources, readResource } from "./resources.js";
 import { allTools, handleToolCall } from "./tools.js";
 
 const name = process.env.PKG_NAME!;
@@ -15,9 +22,12 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   },
 );
+
+// ─── Tools ────────────────────────────────────────────────────────
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -34,6 +44,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return handleToolCall(name, (args ?? {}) as Record<string, unknown>);
 });
+
+// ─── Resources ────────────────────────────────────────────────────
+
+server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
+  return listResources(request.params?.cursor);
+});
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  return readResource(request.params.uri);
+});
+
+server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
+  return listResourceTemplates();
+});
+
+// ─── Start ────────────────────────────────────────────────────────
 
 async function main() {
   const transport = new StdioServerTransport();
