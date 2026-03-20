@@ -1,5 +1,5 @@
-import { EventEmitter } from "node:events";
 import { execFile } from "node:child_process";
+import { EventEmitter } from "node:events";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
