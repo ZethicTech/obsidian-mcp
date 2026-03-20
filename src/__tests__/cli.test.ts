@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildArgs } from "../cli.js";
+import { assertCliSuccess, buildArgs } from "../cli.js";
 
 type ExecFileCallback = (error: Error | null, stdout: string | null, stderr: string | null) => void;
 
@@ -85,6 +85,26 @@ describe("buildArgs", () => {
         delete process.env.OBSIDIAN_VAULT;
       }
     }
+  });
+});
+
+// ─── assertCliSuccess ─────────────────────────────────────────────
+
+describe("assertCliSuccess", () => {
+  it("throws when stderr is present and stdout is empty", () => {
+    expect(() => assertCliSuccess({ stdout: "", stderr: "error occurred" })).toThrow("error occurred");
+  });
+
+  it("does not throw when both stdout and stderr are present", () => {
+    expect(() => assertCliSuccess({ stdout: "output", stderr: "warning" })).not.toThrow();
+  });
+
+  it("does not throw when stderr is empty", () => {
+    expect(() => assertCliSuccess({ stdout: "output", stderr: "" })).not.toThrow();
+  });
+
+  it("does not throw when both are empty", () => {
+    expect(() => assertCliSuccess({ stdout: "", stderr: "" })).not.toThrow();
   });
 });
 
@@ -304,6 +324,65 @@ describe("runObsidianCli", () => {
 
     // Should reject exactly once with the streaming message, not double-reject
     await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
+  });
+
+  it("rejects with startup message when error callback has startup logs in stdout", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      const err = Object.assign(new Error("exit 1"), { code: 1 });
+      (cb as ExecFileCallback)(err, "Loaded main app package /some/path", "");
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
+  });
+
+  it("falls back to error.message when stderr is null on non-zero exit", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      const err = Object.assign(new Error("something broke"), { code: 1 });
+      (cb as ExecFileCallback)(err, "", null);
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const result = await runObsidianCli("read", {});
+    expect(result.stderr).toBe("something broke");
+  });
+
+  it("does not crash when child.stdout is null", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "ok", "");
+      return { stdout: null, kill: vi.fn() } as unknown as ReturnType<typeof execFile>;
+    });
+
+    const result = await runObsidianCli("read", {});
+    expect(result.stdout).toBe("ok");
+  });
+
+  it("ignores abort after promise already settled via callback", async () => {
+    const controller = new AbortController();
+
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "ok", "");
+      return { stdout: null, kill: vi.fn() } as unknown as ReturnType<typeof execFile>;
+    });
+
+    const result = await runObsidianCli("read", {}, undefined, undefined, { signal: controller.signal });
+    expect(result.stdout).toBe("ok");
+
+    // Abort after settled — should not throw
+    controller.abort();
+  });
+
+  it("cleans up abort listener after normal resolution", async () => {
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "ok", "");
+      return { stdout: null, kill: vi.fn() } as unknown as ReturnType<typeof execFile>;
+    });
+
+    await runObsidianCli("read", {}, undefined, undefined, { signal: controller.signal });
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
   });
 
   it("normal stdout data does not trigger startup detection", async () => {

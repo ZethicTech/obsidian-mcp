@@ -109,6 +109,13 @@ export interface CliOptions {
   signal?: AbortSignal;
 }
 
+const STARTUP_SENTINEL = "Loaded main app package";
+const NOT_RUNNING_MSG = "Obsidian is not running. Please open Obsidian and try again.";
+
+function looksLikeStartup(output: string): boolean {
+  return output.includes(STARTUP_SENTINEL);
+}
+
 export async function runObsidianCli(
   command: string,
   params?: Record<string, unknown>,
@@ -123,9 +130,20 @@ export async function runObsidianCli(
   return new Promise((resolve, reject) => {
     let settled = false;
 
+    const killAndReject = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      child.kill();
+      options?.signal?.removeEventListener("abort", onAbort);
+      reject(err);
+    };
+
+    const onAbort = () => killAndReject(new Error("Operation cancelled"));
+
     const child = execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
       if (settled) return;
       settled = true;
+      options?.signal?.removeEventListener("abort", onAbort);
 
       if (error) {
         const code = (error as NodeJS.ErrnoException).code;
@@ -148,8 +166,8 @@ export async function runObsidianCli(
 
         // Non-zero exit code — return stderr as error info
         const out = stdout?.trim() ?? "";
-        if (out.includes("Loaded main app package")) {
-          reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
+        if (looksLikeStartup(out)) {
+          reject(new Error(NOT_RUNNING_MSG));
           return;
         }
         resolve({ stdout: out, stderr: stderr?.trim() ?? error.message });
@@ -157,8 +175,8 @@ export async function runObsidianCli(
       }
 
       const out = stdout?.trim() ?? "";
-      if (out.includes("Loaded main app package")) {
-        reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
+      if (looksLikeStartup(out)) {
+        reject(new Error(NOT_RUNNING_MSG));
         return;
       }
       resolve({ stdout: out, stderr: stderr?.trim() ?? "" });
@@ -168,34 +186,18 @@ export async function runObsidianCli(
     // When the CLI launches a new Electron instance instead of connecting to a
     // running one, it emits "Loaded main app package" to stdout almost immediately.
     child.stdout?.on("data", (chunk: Buffer) => {
-      if (!settled && chunk.toString().includes("Loaded main app package")) {
-        settled = true;
-        child.kill();
-        reject(new Error("Obsidian is not running. Please open Obsidian and try again."));
+      if (looksLikeStartup(chunk.toString())) {
+        killAndReject(new Error(NOT_RUNNING_MSG));
       }
     });
 
     // Support cancellation via AbortSignal
     if (options?.signal) {
       if (options.signal.aborted) {
-        if (!settled) {
-          settled = true;
-          child.kill();
-          reject(new Error("Operation cancelled"));
-        }
+        killAndReject(new Error("Operation cancelled"));
         return;
       }
-      options.signal.addEventListener(
-        "abort",
-        () => {
-          if (!settled) {
-            settled = true;
-            child.kill();
-            reject(new Error("Operation cancelled"));
-          }
-        },
-        { once: true },
-      );
+      options.signal.addEventListener("abort", onAbort, { once: true });
     }
   });
 }
