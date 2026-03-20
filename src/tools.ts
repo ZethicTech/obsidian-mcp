@@ -1,5 +1,5 @@
-import type { ToolDefinition } from "./types.js";
 import { runObsidianCli } from "./cli.js";
+import type { ToolDefinition } from "./types.js";
 
 // Reusable schema fragments
 const fileOrPath = {
@@ -700,12 +700,12 @@ export const destructiveTools: ToolDefinition[] = [
         args: {
           type: "object",
           additionalProperties: { type: "string" },
-          description: "Key-value parameters (e.g. {\"id\": \"my-plugin\", \"name\": \"test\"})",
+          description: 'Key-value parameters (e.g. {"id": "my-plugin", "name": "test"})',
         },
         flags: {
           type: "array",
           items: { type: "string" },
-          description: "Boolean flags (e.g. [\"verbose\", \"total\"])",
+          description: 'Boolean flags (e.g. ["verbose", "total"])',
         },
       },
       required: ["command"],
@@ -722,11 +722,7 @@ export const destructiveTools: ToolDefinition[] = [
 
 // ─── All tools ─────────────────────────────────────────────────────
 
-export const allTools: ToolDefinition[] = [
-  ...readOnlyTools,
-  ...writeTools,
-  ...destructiveTools,
-];
+export const allTools: ToolDefinition[] = [...readOnlyTools, ...writeTools, ...destructiveTools];
 
 // ─── Command mapping ──────────────────────────────────────────────
 
@@ -770,9 +766,23 @@ const commandMap: Record<string, string> = {
 
 // Parameters that are boolean flags (passed as bare words without value)
 const booleanFlags = new Set([
-  "total", "counts", "verbose", "active", "case", "overwrite",
-  "open", "newtab", "inline", "permanent", "toggle", "done",
-  "todo", "words", "characters", "copy", "daily",
+  "total",
+  "counts",
+  "verbose",
+  "active",
+  "case",
+  "overwrite",
+  "open",
+  "newtab",
+  "inline",
+  "permanent",
+  "toggle",
+  "done",
+  "todo",
+  "words",
+  "characters",
+  "copy",
+  "daily",
 ]);
 
 export async function handleToolCall(

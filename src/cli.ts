@@ -1,6 +1,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
+
 import type { CliResult } from "./types.js";
 
 const IS_MACOS = platform() === "darwin";
@@ -15,24 +16,18 @@ const MACOS_ENV: NodeJS.ProcessEnv | undefined = (() => {
   if (tmpdir === "/tmp") {
     try {
       tmpdir = execFileSync("/usr/bin/getconf", ["DARWIN_USER_TEMP_DIR"], { encoding: "utf8" }).trim();
-    } catch { /* fall back to /tmp */ }
+    } catch {
+      /* fall back to /tmp */
+    }
   }
   return { ...process.env, TMPDIR: tmpdir, HOME: homedir() };
 })();
 
 // Well-known Obsidian CLI locations per platform
 const KNOWN_PATHS: Record<string, string[]> = {
-  darwin: [
-    "/Applications/Obsidian.app/Contents/MacOS/obsidian",
-    "/opt/homebrew/bin/obsidian",
-  ],
-  linux: [
-    "/usr/local/bin/obsidian",
-    `${process.env.HOME}/.local/bin/obsidian`,
-  ],
-  win32: [
-    `${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`,
-  ],
+  darwin: ["/Applications/Obsidian.app/Contents/MacOS/obsidian", "/opt/homebrew/bin/obsidian"],
+  linux: ["/usr/local/bin/obsidian", `${process.env.HOME}/.local/bin/obsidian`],
+  win32: [`${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`],
 };
 
 function getObsidianBinary(): string {
@@ -131,11 +126,7 @@ export async function runObsidianCli(
         }
 
         if (error.killed) {
-          reject(
-            new Error(
-              `Obsidian CLI timed out after ${timeout}ms. Is the Obsidian app running?`,
-            ),
-          );
+          reject(new Error(`Obsidian CLI timed out after ${timeout}ms. Is the Obsidian app running?`));
           return;
         }
 
