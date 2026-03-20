@@ -1,7 +1,7 @@
 {
   "name": "@zethictech/obsidian-mcp",
   "version": "1.1.0",
-  "description": "MCP server for Obsidian, wrapping the official CLI (1.12+)",
+  "description": "Access your Obsidian vault from Claude Desktop and other AI tools — MCP server wrapping the official Obsidian CLI with tools, resources, and prompts",
   "author": {
     "name": "ZethicTech",
     "url": "https://github.com/ZethicTech"
@@ -39,13 +39,23 @@
   },
   "keywords": [
     "obsidian",
+    "obsidian-vault",
+    "obsidian-notes",
+    "obsidian-plugin",
     "mcp",
     "mcp-server",
+    "mcp-tools",
+    "mcp-resources",
     "model-context-protocol",
-    "cli",
     "claude",
+    "claude-desktop",
+    "claude-code",
     "anthropic",
-    "ai"
+    "ai",
+    "ai-tools",
+    "llm",
+    "note-taking",
+    "knowledge-management"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

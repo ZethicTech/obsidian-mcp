@@ -1,6 +1,10 @@
 # Obsidian MCP
 
-Connect Claude to your Obsidian vault to read, write, search, and manage notes — directly from Claude.
+Access your Obsidian vault from **Claude Desktop**, **Claude Code**, and other AI tools that support the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 34 tools, resources, and prompt templates.
+
+**Features:** read/write/search notes, manage properties and tasks, browse vault resources, run pre-built prompt workflows — all validated with Zod schemas and powered by the official Obsidian CLI.
 
 ## Prerequisites
 
@@ -11,7 +15,7 @@ Connect Claude to your Obsidian vault to read, write, search, and manage notes �
 
 ## Setup
 
-Install the package from npm and configure Claude Desktop or Claude Code to use it. The MCP server runs locally on your machine and communicates with the Obsidian app via its CLI.
+Install the package from npm and configure your MCP client to use it. The server runs locally on your machine and communicates with the Obsidian app via its CLI.
 
 ### How it works
 
@@ -123,6 +127,33 @@ claude mcp add obsidian npx @zethictech/obsidian-mcp --env OBSIDIAN_VAULT="My Va
 | `run_command`     | Run any CLI command directly       |
 
 > **`run_command`** is an escape hatch that gives you access to all ~100 CLI commands not covered by the structured tools above (sync, plugins, themes, templates, workspaces, publish, dev tools, etc.). Use `get_help` to discover available commands.
+
+All tool inputs are validated at runtime using [Zod](https://zod.dev/) schemas. Invalid inputs return clear error messages before any CLI command is executed.
+
+---
+
+## Resources
+
+Vault files are exposed as [MCP Resources](https://modelcontextprotocol.io/specification/2025-11-25/server/resources), allowing clients to include vault content directly in LLM context.
+
+- **URI format:** `obsidian://{vault}/{path}` (e.g., `obsidian://MyVault/Projects/readme.md`)
+- **Pagination:** Large vaults are paginated automatically (100 files per page)
+- **MIME types:** Detected automatically for common file types (`.md`, `.json`, `.txt`, `.png`, `.pdf`, etc.)
+- **Resource templates:** Clients can use `obsidian://{vault}/{path}` as a template for dynamic access
+
+---
+
+## Prompts
+
+Five pre-built [MCP Prompts](https://modelcontextprotocol.io/specification/2025-11-25/server/prompts) provide templated workflows. These gather vault data via CLI calls and return structured messages for the LLM.
+
+| Prompt           | Arguments       | Description                                                 |
+| ---------------- | --------------- | ----------------------------------------------------------- |
+| `analyze_vault`  | —               | Vault health overview: orphan notes, unresolved links, tags |
+| `summarize_note` | `file` required | Read and summarize a specific note                          |
+| `find_related`   | `file` required | Find related notes via backlinks, links, and shared tags    |
+| `daily_review`   | —               | Review today's daily note and suggest follow-up actions     |
+| `suggest_links`  | `file` required | Suggest wikilinks to add based on note content              |
 
 ---
 
