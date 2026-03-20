@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runObsidianCli } from "../cli.js";
+import { isObsidianRunning, runObsidianCli } from "../cli.js";
 import { listResourceTemplates, listResources, readResource } from "../resources.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
@@ -8,8 +8,11 @@ vi.mock("../cli.js", async (importOriginal) => {
   return {
     ...actual,
     runObsidianCli: vi.fn(),
+    isObsidianRunning: vi.fn(() => true),
   };
 });
+
+const mockIsRunning = vi.mocked(isObsidianRunning);
 
 const mockRunCli = vi.mocked(runObsidianCli);
 
@@ -56,6 +59,14 @@ describe("listResources", () => {
     expect(page2.resources).toHaveLength(50);
     expect(page2.nextCursor).toBeUndefined();
   });
+
+  it("returns empty list when Obsidian is not running", async () => {
+    mockIsRunning.mockReturnValue(false);
+    const result = await listResources();
+    expect(result.resources).toHaveLength(0);
+    expect(mockRunCli).not.toHaveBeenCalled();
+    mockIsRunning.mockReturnValue(true);
+  });
 });
 
 describe("readResource", () => {
@@ -69,6 +80,12 @@ describe("readResource", () => {
     expect(result.contents[0].text).toBe("# Hello World");
     expect(result.contents[0].mimeType).toBe("text/markdown");
     expect(mockRunCli).toHaveBeenCalledWith("read", { path: "notes/hello.md" });
+  });
+
+  it("throws when Obsidian is not running", async () => {
+    mockIsRunning.mockReturnValue(false);
+    await expect(readResource("obsidian://V/note.md")).rejects.toThrow("Obsidian is not running");
+    mockIsRunning.mockReturnValue(true);
   });
 
   it("throws on invalid URI", async () => {

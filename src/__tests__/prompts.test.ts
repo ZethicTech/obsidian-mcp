@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runObsidianCli } from "../cli.js";
+import { isObsidianRunning, runObsidianCli } from "../cli.js";
 import { getPrompt, listPrompts, prompts } from "../prompts.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
@@ -8,8 +8,11 @@ vi.mock("../cli.js", async (importOriginal) => {
   return {
     ...actual,
     runObsidianCli: vi.fn(),
+    isObsidianRunning: vi.fn(() => true),
   };
 });
+
+const mockIsRunning = vi.mocked(isObsidianRunning);
 
 const mockRunCli = vi.mocked(runObsidianCli);
 
@@ -46,6 +49,12 @@ describe("getPrompt", () => {
     const result = await getPrompt("summarize_note", { file: "test.md" });
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].content.text).toContain("test.md");
+  });
+
+  it("throws when Obsidian is not running", async () => {
+    mockIsRunning.mockReturnValue(false);
+    await expect(getPrompt("analyze_vault", {})).rejects.toThrow("Obsidian is not running");
+    mockIsRunning.mockReturnValue(true);
   });
 
   it("throws for unknown prompt", async () => {

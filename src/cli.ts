@@ -99,6 +99,26 @@ export function buildArgs(
   return args;
 }
 
+const NOT_RUNNING_MESSAGE = "Obsidian is not running. Please open the Obsidian app and try again.";
+
+export function isObsidianRunning(): boolean {
+  try {
+    const os = platform();
+    if (os === "win32") {
+      const output = execFileSync("tasklist", ["/FI", "IMAGENAME eq Obsidian.exe", "/NH"], { encoding: "utf8" });
+      return output.includes("Obsidian.exe");
+    }
+    // macOS/Linux: pgrep returns exit 0 if process found, 1 if not
+    const name = os === "darwin" ? "Obsidian" : "obsidian";
+    execFileSync("pgrep", ["-x", name], { encoding: "utf8" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { NOT_RUNNING_MESSAGE };
+
 export function assertCliSuccess(result: CliResult): void {
   if (result.stderr && !result.stdout) {
     throw new Error(result.stderr);

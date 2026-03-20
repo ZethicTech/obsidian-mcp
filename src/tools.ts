@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { runObsidianCli } from "./cli.js";
+import { NOT_RUNNING_MESSAGE, isObsidianRunning, runObsidianCli } from "./cli.js";
 import { toolSchemas } from "./schemas.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -305,6 +305,13 @@ export async function handleToolCall(
   options?: HandleToolCallOptions,
 ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }> {
   try {
+    if (!isObsidianRunning()) {
+      return {
+        content: [{ type: "text", text: NOT_RUNNING_MESSAGE }],
+        isError: true,
+      };
+    }
+
     // Resolve command before validation to fail fast on unknown tools
     let command: string;
     let params: Record<string, unknown>;

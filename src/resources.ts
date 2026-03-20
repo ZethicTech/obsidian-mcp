@@ -1,4 +1,4 @@
-import { assertCliSuccess, runObsidianCli } from "./cli.js";
+import { NOT_RUNNING_MESSAGE, assertCliSuccess, isObsidianRunning, runObsidianCli } from "./cli.js";
 
 const MIME_MAP: Record<string, string> = {
   md: "text/markdown",
@@ -62,6 +62,10 @@ export async function listResources(cursor?: string): Promise<{
   resources: Array<{ uri: string; name: string; mimeType: string }>;
   nextCursor?: string;
 }> {
+  if (!isObsidianRunning()) {
+    return { resources: [] };
+  }
+
   const vaultName = getVaultName();
   const result = await runObsidianCli("files", {}, undefined);
   const files = result.stdout
@@ -86,6 +90,10 @@ export async function listResources(cursor?: string): Promise<{
 export async function readResource(uri: string): Promise<{
   contents: Array<{ uri: string; mimeType: string; text: string }>;
 }> {
+  if (!isObsidianRunning()) {
+    throw new Error(NOT_RUNNING_MESSAGE);
+  }
+
   const { path } = uriToPath(uri);
   const mimeType = getMimeType(path);
 

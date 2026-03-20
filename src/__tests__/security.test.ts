@@ -12,6 +12,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return {
     ...actual,
     runObsidianCli: vi.fn().mockResolvedValue({ stdout: "ok", stderr: "" }),
+    isObsidianRunning: vi.fn(() => true),
   };
 });
 
