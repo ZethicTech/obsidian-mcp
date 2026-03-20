@@ -99,18 +99,23 @@ export function buildArgs(
   return args;
 }
 
+export interface CliOptions {
+  signal?: AbortSignal;
+}
+
 export async function runObsidianCli(
   command: string,
   params?: Record<string, unknown>,
   flags?: string[],
   vault?: string,
+  options?: CliOptions,
 ): Promise<CliResult> {
   const binary = getObsidianBinary();
   const args = buildArgs(command, params, flags, vault);
   const timeout = getTimeout();
 
   return new Promise((resolve, reject) => {
-    execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
+    const child = execFile(binary, args, { timeout, env: MACOS_ENV }, (error, stdout, stderr) => {
       if (error) {
         const code = (error as NodeJS.ErrnoException).code;
 
@@ -143,5 +148,22 @@ export async function runObsidianCli(
         stderr: stderr?.trim() ?? "",
       });
     });
+
+    // Support cancellation via AbortSignal
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        child.kill();
+        reject(new Error("Operation cancelled"));
+        return;
+      }
+      options.signal.addEventListener(
+        "abort",
+        () => {
+          child.kill();
+          reject(new Error("Operation cancelled"));
+        },
+        { once: true },
+      );
+    }
   });
 }

@@ -44,9 +44,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
   const { name, arguments: args } = request.params;
-  return handleToolCall(name, (args ?? {}) as Record<string, unknown>);
+  const progressToken = request.params._meta?.progressToken;
+
+  return handleToolCall(name, (args ?? {}) as Record<string, unknown>, {
+    signal: extra.signal,
+    onProgress:
+      progressToken !== undefined
+        ? (progress, total) => {
+            server.notification({
+              method: "notifications/progress",
+              params: { progressToken, progress, total },
+            });
+          }
+        : undefined,
+  });
 });
 
 // ─── Resources ────────────────────────────────────────────────────

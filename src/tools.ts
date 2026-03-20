@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { runObsidianCli } from "./cli.js";
+import type { CliOptions } from "./cli.js";
 import { toolSchemas } from "./schemas.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -491,9 +492,15 @@ export const booleanFlags = new Set([
   "daily",
 ]);
 
+export interface HandleToolCallOptions {
+  signal?: AbortSignal;
+  onProgress?: (progress: number, total: number) => void;
+}
+
 export async function handleToolCall(
   toolName: string,
   args: Record<string, unknown>,
+  options?: HandleToolCallOptions,
 ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }> {
   try {
     // Validate input against Zod schema
@@ -541,7 +548,18 @@ export async function handleToolCall(
       }
     }
 
-    const result = await runObsidianCli(command, params, flags);
+    // Emit progress: starting
+    options?.onProgress?.(0, 1);
+
+    const cliOptions: CliOptions = {};
+    if (options?.signal) {
+      cliOptions.signal = options.signal;
+    }
+
+    const result = await runObsidianCli(command, params, flags, undefined, cliOptions);
+
+    // Emit progress: complete
+    options?.onProgress?.(1, 1);
 
     if (result.stderr && !result.stdout) {
       return {
