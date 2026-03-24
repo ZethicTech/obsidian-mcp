@@ -1,5 +1,9 @@
 # Obsidian MCP
 
+[![npm](https://img.shields.io/npm/v/@zethictech/obsidian-mcp)](https://www.npmjs.com/package/@zethictech/obsidian-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+
 Access your Obsidian vault from **Claude Desktop**, **Claude Code**, and other AI tools that support the [Model Context Protocol](https://modelcontextprotocol.io/).
 
 Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 34 tools and prompt templates.
@@ -145,6 +149,25 @@ Five pre-built [MCP Prompts](https://modelcontextprotocol.io/specification/2025-
 | `suggest_links`  | `file` required | Suggest wikilinks to add based on note content              |
 
 ---
+
+## Troubleshooting
+
+**Server not starting?**
+
+- Verify `OBSIDIAN_VAULT` is set and matches your vault name exactly
+- Ensure Obsidian 1.12+ is installed with the CLI enabled
+- Run `npx @zethictech/obsidian-mcp --version` to verify the package loads
+
+**Obsidian app not detected?**
+
+- The CLI requires Obsidian to be running — start the app and try again
+- If Obsidian just launched, wait a few seconds for it to fully initialize
+
+**Stale npx cache?**
+
+```bash
+npx --yes @zethictech/obsidian-mcp
+```
 
 ## License
 

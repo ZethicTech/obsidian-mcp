@@ -7,24 +7,24 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write
-  contents: write
+  contents: read
 
 jobs:
   ci:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20, 22]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: https://registry.npmjs.org
+          cache: npm
 
       - run: npm ci
+      - run: npm audit --audit-level=high || true
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
@@ -35,6 +35,9 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,8 +47,8 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          cache: npm
 
-      - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run build
 
@@ -71,7 +74,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=${{ steps.version-check.outputs.local }}
+          VERSION="${{ steps.version-check.outputs.local }}"
           git tag "v${VERSION}"
           git push origin "v${VERSION}"
           gh release create "v${VERSION}" --generate-notes --title "v${VERSION}"

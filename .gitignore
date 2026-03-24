@@ -1,5 +1,15 @@
+# Environment variables
+.env*
+
+# Node
 node_modules/
 dist/
-.DS_Store
+
+# Build artifacts
 *.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Claude Desktop local settings
 .claude/
