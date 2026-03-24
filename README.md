@@ -3,6 +3,10 @@
 [![npm](https://img.shields.io/npm/v/@zethictech/obsidian-mcp)](https://www.npmjs.com/package/@zethictech/obsidian-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![CodeQL](https://github.com/ZethicTech/obsidian-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/ZethicTech/obsidian-mcp/actions/workflows/codeql.yml)
+[![CI](https://github.com/ZethicTech/obsidian-mcp/actions/workflows/publish.yml/badge.svg)](https://github.com/ZethicTech/obsidian-mcp/actions/workflows/publish.yml)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-blue.svg)](https://conventionalcommits.org)
+[![CodeRabbit](https://img.shields.io/badge/CodeRabbit-AI%20Reviews-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6Ii8+PC9zdmc+)](https://coderabbit.ai)
 
 Access your Obsidian vault from **Claude Desktop**, **Claude Code**, and other AI tools that support the [Model Context Protocol](https://modelcontextprotocol.io/).
 
