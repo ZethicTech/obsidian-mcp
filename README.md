@@ -12,7 +12,7 @@ Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from G
 
 ## Prerequisites
 
-- **Obsidian 1.12+** with the CLI enabled: Settings → General → Advanced → Command Line Interface → Enable
+- **Obsidian 1.12+** (tested through 1.12.7) with the CLI enabled: Settings → General → Advanced → Command Line Interface → Enable
 - **Obsidian app must be running** (the CLI communicates with the app)
 
 ---
