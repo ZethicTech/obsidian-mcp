@@ -31,13 +31,9 @@ jobs:
       - run: npm run build
       - run: npm test
 
-  publish:
-    needs: ci
+  commitlint:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      id-token: write
-      contents: write
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -46,35 +42,66 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
+          cache: npm
 
-      - run: npm install -g npm@latest
       - run: npm ci
-      - run: npm run build
 
-      - name: Check if version is new
-        id: version-check
-        run: |
-          LOCAL=$(node -p "require('./package.json').version")
-          REMOTE=$(npm view @zethictech/obsidian-mcp version 2>/dev/null || echo "0.0.0")
-          echo "local=$LOCAL" >> "$GITHUB_OUTPUT"
-          echo "remote=$REMOTE" >> "$GITHUB_OUTPUT"
-          if [ "$LOCAL" != "$REMOTE" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Validate PR commits
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
-      - name: Publish to npm
-        if: steps.version-check.outputs.publish == 'true'
-        run: npm publish --access public --provenance
+  pkg-size:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
 
-      - name: Create GitHub Release
-        if: steps.version-check.outputs.publish == 'true'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: pkg-size/action@v1
+        with:
+          build-command: npm run build
+          display-size: uncompressed,gzip
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ steps.version-check.outputs.local }}"
-          git tag "v${VERSION}"
-          git push origin "v${VERSION}"
-          gh release create "v${VERSION}" --generate-notes --title "v${VERSION}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-please:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: [ci, release-please]
+    runs-on: ubuntu-latest
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+      - run: npm publish --access public --provenance
