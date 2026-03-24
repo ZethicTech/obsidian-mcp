@@ -6,11 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     strategy:
       matrix:
         node-version: [20, 22]
@@ -46,8 +47,8 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: npm
 
+      - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run build
 
