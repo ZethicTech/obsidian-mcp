@@ -1,0 +1,5 @@
+reviews:
+  profile: "assertive"
+  path_instructions:
+    - path: "src/**"
+      instructions: "This is an MCP server wrapping the Obsidian CLI. Focus on security (command injection), error handling, and MCP SDK correctness."
