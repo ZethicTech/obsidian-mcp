@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runObsidianCli } from "../cli.js";
+import { detectTemplateFolders, getVaultPath, runObsidianCli } from "../cli.js";
 import { toolSchemas } from "../schemas.js";
 import {
   allTools,
@@ -14,9 +14,13 @@ import {
 
 vi.mock("../cli.js", () => ({
   runObsidianCli: vi.fn(),
+  getVaultPath: vi.fn(),
+  detectTemplateFolders: vi.fn(),
 }));
 
 const mockRunCli = vi.mocked(runObsidianCli);
+const mockGetVaultPath = vi.mocked(getVaultPath);
+const mockDetectFolders = vi.mocked(detectTemplateFolders);
 
 describe("tool definitions", () => {
   it("has no duplicate tool names", () => {
@@ -45,9 +49,9 @@ describe("tool definitions", () => {
     }
   });
 
-  it("every tool has a commandMap entry (except run_command which has special routing)", () => {
+  it("every tool has a commandMap entry (except run_command and list_templates which have special routing)", () => {
     for (const tool of allTools) {
-      if (tool.name === "run_command") continue;
+      if (tool.name === "run_command" || tool.name === "list_templates") continue;
       expect(commandMap[tool.name]).toBeDefined();
     }
   });
@@ -227,5 +231,51 @@ describe("booleanFlags set", () => {
     for (const flag of expected) {
       expect(booleanFlags.has(flag)).toBe(true);
     }
+  });
+});
+
+describe("list_templates handler", () => {
+  beforeEach(() => {
+    mockRunCli.mockReset();
+    mockGetVaultPath.mockReset();
+    mockDetectFolders.mockReset();
+  });
+
+  it("lists templates from auto-detected folder", async () => {
+    mockGetVaultPath.mockResolvedValue("/vault");
+    mockDetectFolders.mockResolvedValue([{ source: "Core Templates" as const, folder: "Templates" }]);
+    mockRunCli.mockResolvedValue({ stdout: "Meeting Notes.md\nWeekly Review.md", stderr: "" });
+
+    const result = await handleToolCall("list_templates", {});
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain("Meeting Notes");
+    expect(result.content[0].text).toContain("Weekly Review");
+  });
+
+  it("uses folder override when provided", async () => {
+    mockGetVaultPath.mockResolvedValue("/vault");
+    mockRunCli.mockResolvedValue({ stdout: "Custom.md", stderr: "" });
+
+    const result = await handleToolCall("list_templates", { folder: "MyTemplates" });
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain("Custom");
+    expect(mockDetectFolders).not.toHaveBeenCalled();
+  });
+
+  it("returns error when no template folder configured and no override", async () => {
+    mockGetVaultPath.mockResolvedValue("/vault");
+    mockDetectFolders.mockResolvedValue([]);
+
+    const result = await handleToolCall("list_templates", {});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("No template folder configured");
+  });
+
+  it("returns error when vault path cannot be resolved", async () => {
+    mockGetVaultPath.mockRejectedValue(new Error("Could not determine vault path"));
+
+    const result = await handleToolCall("list_templates", {});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Could not determine vault path");
   });
 });

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { runObsidianCli } from "./cli.js";
+import { detectTemplateFolders, getVaultPath, runObsidianCli } from "./cli.js";
 import { toolSchemas } from "./schemas.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -108,6 +108,11 @@ const toolMeta: Record<string, ToolMeta> = {
     description: "Get help for Obsidian CLI commands. Omit command for the full command list.",
     annotations: { title: "Get Help", ...READ_ONLY },
   },
+  list_templates: {
+    description:
+      "List available templates in the vault. Auto-detects the template folder from Core Templates and Templater plugin settings. Use folder= to override.",
+    annotations: { title: "List Templates", ...READ_ONLY },
+  },
   // Write tools
   create_note: {
     description: "Create a new note. Can optionally use a template and set initial content.",
@@ -194,6 +199,7 @@ const readOnlyToolNames = [
   "get_vault_info",
   "wordcount",
   "get_help",
+  "list_templates",
 ];
 
 const writeToolNames = [
@@ -309,6 +315,61 @@ export async function handleToolCall(
     let command: string;
     let params: Record<string, unknown>;
     let flags: string[] | undefined;
+
+    if (toolName === "list_templates") {
+      // Validate input
+      const schema = toolSchemas[toolName];
+      if (schema) {
+        const result = schema.safeParse(args);
+        if (!result.success) {
+          const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+          return { content: [{ type: "text", text: `Invalid input: ${issues}` }], isError: true };
+        }
+      }
+
+      options?.onProgress?.(0, 1);
+
+      const vaultPath = await getVaultPath();
+      const folderOverride = args.folder as string | undefined;
+
+      let folders: Array<{ source: string; folder: string }>;
+      if (folderOverride) {
+        folders = [{ source: "Manual", folder: folderOverride }];
+      } else {
+        folders = await detectTemplateFolders(vaultPath);
+        if (folders.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No template folder configured. Set a template folder in Obsidian Settings > Core Plugins > Templates, or use the folder parameter to specify one.",
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
+      const sections: string[] = [];
+      for (const { source, folder } of folders) {
+        const cliResult = await runObsidianCli("files", { folder, ext: "md" });
+        const files = cliResult.stdout?.trim();
+        if (!files) {
+          sections.push(`${source} (folder: "${folder}"): No templates found.`);
+          continue;
+        }
+        const names = files
+          .split("\n")
+          .map((f) => f.replace(/\.md$/, ""))
+          .map((n) => `- ${n}`)
+          .join("\n");
+        sections.push(`${source} (folder: "${folder}"):\n${names}`);
+      }
+
+      options?.onProgress?.(1, 1);
+
+      return { content: [{ type: "text", text: sections.join("\n\n") }] };
+    }
 
     if (toolName === "run_command") {
       command = args.command as string;

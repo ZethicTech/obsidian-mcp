@@ -124,6 +124,10 @@ export const getHelpSchema = z.object({
   command: z.string().optional().describe("Command to get help for"),
 });
 
+export const listTemplatesSchema = z.object({
+  folder: z.string().optional().describe("Override template folder path (relative to vault root)"),
+});
+
 // ─── Write tool schemas ───────────────────────────────────────────
 
 export const createNoteSchema = z.object({
@@ -248,6 +252,7 @@ export const toolSchemas: Record<string, z.ZodType> = {
   get_vault_info: getVaultInfoSchema,
   wordcount: wordcountSchema,
   get_help: getHelpSchema,
+  list_templates: listTemplatesSchema,
   create_note: createNoteSchema,
   append_note: appendNoteSchema,
   prepend_note: prependNoteSchema,
