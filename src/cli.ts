@@ -211,8 +211,8 @@ export interface TemplateSource {
   folder: string;
 }
 
-export async function getVaultPath(): Promise<string> {
-  const result = await runObsidianCli("vault", { info: "path" });
+export async function getVaultPath(options?: CliOptions): Promise<string> {
+  const result = await runObsidianCli("vault", { info: "path" }, undefined, undefined, options);
   const path = result.stdout?.trim();
   if (!path) {
     throw new Error("Could not determine vault path. Is Obsidian running with a vault open?");
@@ -232,8 +232,8 @@ export async function detectTemplateFolders(vaultPath: string): Promise<Template
       sources.push({ source: "Core Templates", folder: config.folder });
       seen.add(config.folder);
     }
-  } catch {
-    // Config file doesn't exist — plugin not configured
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 
   // Templater community plugin
@@ -242,9 +242,10 @@ export async function detectTemplateFolders(vaultPath: string): Promise<Template
     const config = JSON.parse(raw) as { templates_folder?: string };
     if (config.templates_folder && !seen.has(config.templates_folder)) {
       sources.push({ source: "Templater", folder: config.templates_folder });
+      seen.add(config.templates_folder);
     }
-  } catch {
-    // Config file doesn't exist — plugin not installed
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 
   return sources;

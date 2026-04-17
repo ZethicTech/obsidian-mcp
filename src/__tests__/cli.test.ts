@@ -444,7 +444,7 @@ describe("detectTemplateFolders", () => {
       if (String(path).endsWith("templates.json")) {
         return JSON.stringify({ folder: "Templates" });
       }
-      throw new Error("ENOENT");
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     const result = await detectTemplateFolders("/vault");
     expect(result).toEqual([{ source: "Core Templates", folder: "Templates" }]);
@@ -455,7 +455,7 @@ describe("detectTemplateFolders", () => {
       if (String(path).endsWith("data.json")) {
         return JSON.stringify({ templates_folder: "Tmpl" });
       }
-      throw new Error("ENOENT");
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     const result = await detectTemplateFolders("/vault");
     expect(result).toEqual([{ source: "Templater", folder: "Tmpl" }]);
@@ -469,7 +469,7 @@ describe("detectTemplateFolders", () => {
       if (String(path).endsWith("data.json")) {
         return JSON.stringify({ templates_folder: "Tmpl" });
       }
-      throw new Error("ENOENT");
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     const result = await detectTemplateFolders("/vault");
     expect(result).toHaveLength(2);
@@ -483,7 +483,7 @@ describe("detectTemplateFolders", () => {
       if (String(path).endsWith("data.json")) {
         return JSON.stringify({ templates_folder: "Templates" });
       }
-      throw new Error("ENOENT");
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     const result = await detectTemplateFolders("/vault");
     expect(result).toHaveLength(1);
@@ -491,7 +491,7 @@ describe("detectTemplateFolders", () => {
   });
 
   it("returns empty array when no config files exist", async () => {
-    mockReadFile.mockRejectedValue(new Error("ENOENT"));
+    mockReadFile.mockRejectedValue(Object.assign(new Error("ENOENT"), { code: "ENOENT" }));
     const result = await detectTemplateFolders("/vault");
     expect(result).toEqual([]);
   });
@@ -501,9 +501,24 @@ describe("detectTemplateFolders", () => {
       if (String(path).endsWith("templates.json")) {
         return JSON.stringify({ folder: "" });
       }
-      throw new Error("ENOENT");
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     const result = await detectTemplateFolders("/vault");
     expect(result).toEqual([]);
+  });
+
+  it("throws on malformed JSON instead of silently ignoring", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("templates.json")) {
+        return "{not valid json";
+      }
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    });
+    await expect(detectTemplateFolders("/vault")).rejects.toThrow();
+  });
+
+  it("throws on permission errors instead of silently ignoring", async () => {
+    mockReadFile.mockRejectedValue(Object.assign(new Error("EACCES"), { code: "EACCES" }));
+    await expect(detectTemplateFolders("/vault")).rejects.toThrow("EACCES");
   });
 });

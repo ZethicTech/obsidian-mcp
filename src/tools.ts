@@ -311,31 +311,34 @@ export async function handleToolCall(
   options?: HandleToolCallOptions,
 ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }> {
   try {
-    // Resolve command before validation to fail fast on unknown tools
+    // Validate input against Zod schema (single source of truth)
+    const schema = toolSchemas[toolName];
+    if (schema) {
+      const result = schema.safeParse(args);
+      if (!result.success) {
+        const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+        return {
+          content: [{ type: "text", text: `Invalid input: ${issues}` }],
+          isError: true,
+        };
+      }
+    }
+
+    // Resolve command before routing
     let command: string;
     let params: Record<string, unknown>;
     let flags: string[] | undefined;
 
     if (toolName === "list_templates") {
-      // Validate input
-      const schema = toolSchemas[toolName];
-      if (schema) {
-        const result = schema.safeParse(args);
-        if (!result.success) {
-          const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-          return { content: [{ type: "text", text: `Invalid input: ${issues}` }], isError: true };
-        }
-      }
-
       options?.onProgress?.(0, 1);
 
-      const vaultPath = await getVaultPath();
       const folderOverride = args.folder as string | undefined;
 
       let folders: Array<{ source: string; folder: string }>;
       if (folderOverride) {
         folders = [{ source: "Manual", folder: folderOverride }];
       } else {
+        const vaultPath = await getVaultPath({ signal: options?.signal });
         folders = await detectTemplateFolders(vaultPath);
         if (folders.length === 0) {
           return {
@@ -352,16 +355,19 @@ export async function handleToolCall(
 
       const sections: string[] = [];
       for (const { source, folder } of folders) {
-        const cliResult = await runObsidianCli("files", { folder, ext: "md" });
+        const cliResult = await runObsidianCli("files", { folder, ext: "md" }, undefined, undefined, {
+          signal: options?.signal,
+        });
         const files = cliResult.stdout?.trim();
         if (!files) {
           sections.push(`${source} (folder: "${folder}"): No templates found.`);
           continue;
         }
         const names = files
-          .split("\n")
-          .map((f) => f.replace(/\.md$/, ""))
-          .map((n) => `- ${n}`)
+          .split(/\r?\n/)
+          .map((f) => f.trim())
+          .filter(Boolean)
+          .map((f) => `- ${f.replace(/\.md$/, "")}`)
           .join("\n");
         sections.push(`${source} (folder: "${folder}"):\n${names}`);
       }
@@ -396,19 +402,6 @@ export async function handleToolCall(
         } else {
           params[key] = value;
         }
-      }
-    }
-
-    // Validate input against Zod schema
-    const schema = toolSchemas[toolName];
-    if (schema) {
-      const result = schema.safeParse(args);
-      if (!result.success) {
-        const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-        return {
-          content: [{ type: "text", text: `Invalid input: ${issues}` }],
-          isError: true,
-        };
       }
     }
 
