@@ -16,3 +16,6 @@ dist/
 
 # Design docs (local only)
 docs/
+
+# Worktrees
+.worktrees/
