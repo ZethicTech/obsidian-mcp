@@ -13,3 +13,6 @@ dist/
 
 # Claude Desktop local settings
 .claude/
+
+# Design docs (local only)
+docs/
