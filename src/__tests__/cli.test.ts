@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { readFile } from "node:fs/promises";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -119,9 +120,14 @@ vi.mock("node:child_process", async (importOriginal) => {
   };
 });
 
+vi.mock("node:fs/promises", () => ({
+  readFile: vi.fn(),
+}));
+
 // Must re-import after mocking
-const { runObsidianCli } = await import("../cli.js");
+const { runObsidianCli, getVaultPath, detectTemplateFolders } = await import("../cli.js");
 const mockExecFile = vi.mocked(execFile);
+const mockReadFile = vi.mocked(readFile);
 
 describe("runObsidianCli", () => {
   const savedCliPath = process.env.OBSIDIAN_CLI_PATH;
@@ -397,5 +403,107 @@ describe("runObsidianCli", () => {
 
     const result = await runObsidianCli("read", {});
     expect(result.stdout).toBe("some normal output");
+  });
+});
+
+// ─── getVaultPath ────────────────────────────────────────────────
+
+describe("getVaultPath", () => {
+  beforeEach(() => {
+    mockExecFile.mockReset();
+    process.env.OBSIDIAN_CLI_PATH = "/usr/bin/obsidian";
+  });
+
+  it("returns trimmed stdout from vault info=path", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "/path/to/vault\n", "");
+      return {} as ReturnType<typeof execFile>;
+    });
+    const result = await getVaultPath();
+    expect(result).toBe("/path/to/vault");
+  });
+
+  it("throws when CLI returns empty stdout", async () => {
+    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
+      (cb as ExecFileCallback)(null, "", "error");
+      return {} as ReturnType<typeof execFile>;
+    });
+    await expect(getVaultPath()).rejects.toThrow("Could not determine vault path");
+  });
+});
+
+// ─── detectTemplateFolders ───────────────────────────────────────
+
+describe("detectTemplateFolders", () => {
+  beforeEach(() => {
+    mockReadFile.mockReset();
+  });
+
+  it("returns core templates folder from templates.json", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("templates.json")) {
+        return JSON.stringify({ folder: "Templates" });
+      }
+      throw new Error("ENOENT");
+    });
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toEqual([{ source: "Core Templates", folder: "Templates" }]);
+  });
+
+  it("returns templater folder from data.json", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("data.json")) {
+        return JSON.stringify({ templates_folder: "Tmpl" });
+      }
+      throw new Error("ENOENT");
+    });
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toEqual([{ source: "Templater", folder: "Tmpl" }]);
+  });
+
+  it("returns both when both plugins are configured", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("templates.json")) {
+        return JSON.stringify({ folder: "Templates" });
+      }
+      if (String(path).endsWith("data.json")) {
+        return JSON.stringify({ templates_folder: "Tmpl" });
+      }
+      throw new Error("ENOENT");
+    });
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toHaveLength(2);
+  });
+
+  it("deduplicates when both plugins point to same folder", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("templates.json")) {
+        return JSON.stringify({ folder: "Templates" });
+      }
+      if (String(path).endsWith("data.json")) {
+        return JSON.stringify({ templates_folder: "Templates" });
+      }
+      throw new Error("ENOENT");
+    });
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toHaveLength(1);
+    expect(result[0].source).toBe("Core Templates");
+  });
+
+  it("returns empty array when no config files exist", async () => {
+    mockReadFile.mockRejectedValue(new Error("ENOENT"));
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toEqual([]);
+  });
+
+  it("skips plugin with empty folder string", async () => {
+    mockReadFile.mockImplementation(async (path) => {
+      if (String(path).endsWith("templates.json")) {
+        return JSON.stringify({ folder: "" });
+      }
+      throw new Error("ENOENT");
+    });
+    const result = await detectTemplateFolders("/vault");
+    expect(result).toEqual([]);
   });
 });
