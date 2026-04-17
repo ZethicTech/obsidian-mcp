@@ -358,6 +358,10 @@ export async function handleToolCall(
         const cliResult = await runObsidianCli("files", { folder, ext: "md" }, undefined, undefined, {
           signal: options?.signal,
         });
+        if (cliResult.stderr && !cliResult.stdout) {
+          sections.push(`${source} (folder: "${folder}"): Error: ${cliResult.stderr}`);
+          continue;
+        }
         const files = cliResult.stdout?.trim();
         if (!files) {
           sections.push(`${source} (folder: "${folder}"): No templates found.`);
