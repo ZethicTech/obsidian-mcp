@@ -215,7 +215,8 @@ export async function getVaultPath(options?: CliOptions): Promise<string> {
   const result = await runObsidianCli("vault", { info: "path" }, undefined, undefined, options);
   const path = result.stdout?.trim();
   if (!path) {
-    throw new Error("Could not determine vault path. Is Obsidian running with a vault open?");
+    const detail = result.stderr?.trim();
+    throw new Error(detail || "Could not determine vault path. Is Obsidian running with a vault open?");
   }
   return path;
 }

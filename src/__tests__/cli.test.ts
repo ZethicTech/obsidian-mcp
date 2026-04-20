@@ -428,7 +428,7 @@ describe("getVaultPath", () => {
       (cb as ExecFileCallback)(null, "", "error");
       return {} as ReturnType<typeof execFile>;
     });
-    await expect(getVaultPath()).rejects.toThrow("Could not determine vault path");
+    await expect(getVaultPath()).rejects.toThrow("error");
   });
 });
 
