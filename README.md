@@ -10,7 +10,7 @@
 
 Access your Obsidian vault from **Claude Desktop**, **Claude Code**, and other AI tools that support the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 34 tools and prompt templates.
+Obsidian 1.12 introduced a powerful CLI, but it isn't directly accessible from GUI-based AI tools like Claude Desktop. This MCP server bridges that gap — giving any MCP-compatible client full access to your vault through 35 tools and prompt templates.
 
 **Features:** read/write/search notes, manage properties and tasks, run pre-built prompt workflows — all validated with Zod schemas and powered by the official Obsidian CLI.
 
@@ -83,32 +83,33 @@ claude mcp add obsidian npx @zethictech/obsidian-mcp --env OBSIDIAN_VAULT="My Va
 
 ---
 
-## Available Tools (34)
+## Available Tools (35)
 
-### Read-only tools (20)
+### Read-only tools (21)
 
-| Tool                    | Description                          |
-| ----------------------- | ------------------------------------ |
-| `read_note`             | Read the full content of a note      |
-| `get_file_info`         | Get metadata about a file            |
-| `list_files`            | List files in the vault              |
-| `list_folders`          | List folders in the vault            |
-| `search`                | Search the vault for text            |
-| `search_with_context`   | Search with surrounding line context |
-| `get_backlinks`         | List incoming links to a note        |
-| `get_links`             | List outgoing links from a note      |
-| `find_unresolved_links` | Find broken/unresolved links         |
-| `find_orphan_notes`     | Find notes with no incoming links    |
-| `get_outline`           | Get heading structure of a note      |
-| `get_properties`        | List frontmatter properties          |
-| `read_property`         | Read a specific property value       |
-| `list_tags`             | List tags in the vault or a note     |
-| `list_tasks`            | List tasks (checkboxes)              |
-| `daily_read`            | Read today's daily note              |
-| `daily_path`            | Get the daily note file path         |
-| `get_vault_info`        | Get vault info (name, path, size)    |
-| `wordcount`             | Count words/characters in a note     |
-| `get_help`              | Get CLI help for any command         |
+| Tool                    | Description                           |
+| ----------------------- | ------------------------------------- |
+| `read_note`             | Read the full content of a note       |
+| `get_file_info`         | Get metadata about a file             |
+| `list_files`            | List files in the vault               |
+| `list_folders`          | List folders in the vault             |
+| `search`                | Search the vault for text             |
+| `search_with_context`   | Search with surrounding line context  |
+| `get_backlinks`         | List incoming links to a note         |
+| `get_links`             | List outgoing links from a note       |
+| `find_unresolved_links` | Find broken/unresolved links          |
+| `find_orphan_notes`     | Find notes with no incoming links     |
+| `get_outline`           | Get heading structure of a note       |
+| `get_properties`        | List frontmatter properties           |
+| `read_property`         | Read a specific property value        |
+| `list_tags`             | List tags in the vault or a note      |
+| `list_tasks`            | List tasks (checkboxes)               |
+| `daily_read`            | Read today's daily note               |
+| `daily_path`            | Get the daily note file path          |
+| `get_vault_info`        | Get vault info (name, path, size)     |
+| `wordcount`             | Count words/characters in a note      |
+| `get_help`              | Get CLI help for any command          |
+| `list_templates`        | List available templates in the vault |
 
 ### Write tools (9)
 

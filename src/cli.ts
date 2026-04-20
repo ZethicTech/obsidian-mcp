@@ -1,6 +1,8 @@
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";
+import { join } from "node:path";
 
 import type { CliResult } from "./types.js";
 
@@ -200,4 +202,52 @@ export async function runObsidianCli(
       options.signal.addEventListener("abort", onAbort, { once: true });
     }
   });
+}
+
+// ─── Template folder detection ──────────────────────────────────
+
+export interface TemplateSource {
+  source: "Core Templates" | "Templater";
+  folder: string;
+}
+
+export async function getVaultPath(options?: CliOptions): Promise<string> {
+  const result = await runObsidianCli("vault", { info: "path" }, undefined, undefined, options);
+  const path = result.stdout?.trim();
+  if (!path) {
+    const detail = result.stderr?.trim();
+    throw new Error(detail || "Could not determine vault path. Is Obsidian running with a vault open?");
+  }
+  return path;
+}
+
+export async function detectTemplateFolders(vaultPath: string): Promise<TemplateSource[]> {
+  const sources: TemplateSource[] = [];
+  const seen = new Set<string>();
+
+  // Core Templates plugin
+  try {
+    const raw = await readFile(join(vaultPath, ".obsidian", "templates.json"), "utf-8");
+    const config = JSON.parse(raw) as { folder?: string };
+    if (config.folder) {
+      sources.push({ source: "Core Templates", folder: config.folder });
+      seen.add(config.folder);
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+
+  // Templater community plugin
+  try {
+    const raw = await readFile(join(vaultPath, ".obsidian", "plugins", "templater-obsidian", "data.json"), "utf-8");
+    const config = JSON.parse(raw) as { templates_folder?: string };
+    if (config.templates_folder && !seen.has(config.templates_folder)) {
+      sources.push({ source: "Templater", folder: config.templates_folder });
+      seen.add(config.templates_folder);
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+
+  return sources;
 }
