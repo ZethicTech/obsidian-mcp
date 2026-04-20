@@ -125,7 +125,7 @@ export const getHelpSchema = z.object({
 });
 
 export const listTemplatesSchema = z.object({
-  folder: z.string().optional().describe("Override template folder path (relative to vault root)"),
+  folder: z.string().min(1).optional().describe("Override template folder path (relative to vault root)"),
 });
 
 // ─── Write tool schemas ───────────────────────────────────────────
