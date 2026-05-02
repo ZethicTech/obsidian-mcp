@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Pack instead of publish (skip tag, npm publish, GitHub release)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -72,30 +78,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release-please:
+  publish:
+    needs: [ci]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
-      pull-requests: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  publish:
-    needs: [ci, release-please]
-    runs-on: ubuntu-latest
-    if: needs.release-please.outputs.release_created == 'true'
-    permissions:
       id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
@@ -105,4 +98,39 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - run: npm publish --access public --provenance
+
+      - name: Read version from package.json
+        id: ver
+        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag does not already exist
+        if: ${{ !inputs.dry_run }}
+        run: |
+          tag="v${{ steps.ver.outputs.version }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists. Bump package.json version before dispatching."
+            exit 1
+          fi
+
+      - name: Pack (dry run)
+        if: ${{ inputs.dry_run }}
+        run: npm pack
+
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --access public --provenance
+
+      - name: Tag and push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.ver.outputs.version }}" -m "Release v${{ steps.ver.outputs.version }}"
+          git push origin "v${{ steps.ver.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          generate_release_notes: true
