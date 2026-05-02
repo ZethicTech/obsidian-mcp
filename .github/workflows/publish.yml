@@ -94,7 +94,12 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: npm
+
+      # Bundled npm with the runner's Node 22 has been observed to fail OIDC
+      # trusted-publisher auth (PUT 404 against npmjs.com despite a valid
+      # provenance signature). Pinning to latest npm restores the working
+      # behaviour used for v1.0.x–v1.1.6 releases.
+      - run: npm install -g npm@latest
 
       - run: npm ci
       - run: npm run build
