@@ -100,7 +100,14 @@ jobs:
 
       - name: Read version from package.json
         id: ver
-        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(jq -r .version package.json)
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo "::error::Could not read version from package.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $version"
 
       - name: Verify tag does not already exist
         if: ${{ !inputs.dry_run }}
