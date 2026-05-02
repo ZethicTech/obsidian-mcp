@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { EventEmitter } from "node:events";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -283,59 +282,6 @@ describe("runObsidianCli", () => {
     expect(result.stdout).toBe("ok");
   });
 
-  it("rejects with startup message when callback detects app launch logs", async () => {
-    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
-      (cb as ExecFileCallback)(null, "Loaded main app package /some/path", "");
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
-  });
-
-  it("detects startup logs via stdout streaming and rejects immediately", async () => {
-    const killFn = vi.fn();
-
-    mockExecFile.mockImplementation((_bin, _args, _opts, _cb) => {
-      const stdout = new EventEmitter();
-      // Simulate Electron startup log arriving on stdout
-      process.nextTick(() => stdout.emit("data", Buffer.from("Loaded main app package /some/path")));
-      return { stdout, kill: killFn } as unknown as ReturnType<typeof execFile>;
-    });
-
-    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
-    expect(killFn).toHaveBeenCalled();
-  });
-
-  it("settled flag prevents double rejection from streaming + callback", async () => {
-    let savedCb: ExecFileCallback | undefined;
-    const killFn = vi.fn();
-
-    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
-      savedCb = cb as ExecFileCallback;
-      const stdout = new EventEmitter();
-      // Emit startup logs on stdout — streaming listener catches it first
-      process.nextTick(() => {
-        stdout.emit("data", Buffer.from("Loaded main app package /some/path"));
-        // Then the callback fires (e.g. after kill) — should be a no-op
-        process.nextTick(() => savedCb!(Object.assign(new Error("killed"), { killed: true }), "", ""));
-      });
-      return { stdout, kill: killFn } as unknown as ReturnType<typeof execFile>;
-    });
-
-    // Should reject exactly once with the streaming message, not double-reject
-    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
-  });
-
-  it("rejects with startup message when error callback has startup logs in stdout", async () => {
-    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
-      const err = Object.assign(new Error("exit 1"), { code: 1 });
-      (cb as ExecFileCallback)(err, "Loaded main app package /some/path", "");
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    await expect(runObsidianCli("read", {})).rejects.toThrow("Obsidian is not running");
-  });
-
   it("falls back to error.message when stderr is null on non-zero exit", async () => {
     mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
       const err = Object.assign(new Error("something broke"), { code: 1 });
@@ -383,19 +329,5 @@ describe("runObsidianCli", () => {
 
     await runObsidianCli("read", {}, undefined, undefined, { signal: controller.signal });
     expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
-  });
-
-  it("normal stdout data does not trigger startup detection", async () => {
-    mockExecFile.mockImplementation((_bin, _args, _opts, cb) => {
-      const stdout = new EventEmitter();
-      process.nextTick(() => {
-        stdout.emit("data", Buffer.from("some normal output"));
-        (cb as ExecFileCallback)(null, "some normal output", "");
-      });
-      return { stdout, kill: vi.fn() } as unknown as ReturnType<typeof execFile>;
-    });
-
-    const result = await runObsidianCli("read", {});
-    expect(result.stdout).toBe("some normal output");
   });
 });

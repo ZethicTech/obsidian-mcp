@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
 
@@ -6,27 +6,22 @@ import type { CliResult } from "./types.js";
 
 const IS_MACOS = platform() === "darwin";
 
-// On macOS, Obsidian's CLI finds the running app via a singleton socket in the
-// user temp dir. Claude Desktop doesn't set TMPDIR, so it falls back to /tmp
-// (wrong). Use getconf to resolve the real per-user temp dir — cached since it
-// never changes during a session.
-const MACOS_ENV: NodeJS.ProcessEnv | undefined = (() => {
-  if (!IS_MACOS) return undefined;
-  let tmpdir = process.env.TMPDIR ?? "/tmp";
-  if (tmpdir === "/tmp") {
-    try {
-      tmpdir = execFileSync("/usr/bin/getconf", ["DARWIN_USER_TEMP_DIR"], { encoding: "utf8" }).trim();
-    } catch {
-      /* fall back to /tmp */
-    }
-  }
-  return { ...process.env, TMPDIR: tmpdir, HOME: homedir() };
-})();
+// obsidian-cli reads getenv("HOME") to locate ~/.obsidian-cli.sock. Claude
+// Desktop / Claude Code child envs don't always carry HOME correctly, so we
+// inject it explicitly.
+const MACOS_ENV: NodeJS.ProcessEnv | undefined = IS_MACOS ? { ...process.env, HOME: homedir() } : undefined;
 
-// Well-known Obsidian CLI locations per platform
+// Well-known obsidian-cli helper locations per platform. The helper is a
+// separate binary from the Electron app — invoking the app directly boots a
+// full Electron process for every call (dock-icon flash, slow, unstable).
 const KNOWN_PATHS: Record<string, string[]> = {
-  darwin: ["/Applications/Obsidian.app/Contents/MacOS/obsidian", "/opt/homebrew/bin/obsidian"],
-  linux: ["/usr/local/bin/obsidian", `${process.env.HOME}/.local/bin/obsidian`],
+  darwin: ["/Applications/Obsidian.app/Contents/MacOS/obsidian-cli"],
+  linux: [
+    `${process.env.HOME}/.local/bin/obsidian-cli`,
+    "/usr/local/bin/obsidian-cli",
+    `${process.env.HOME}/.local/bin/obsidian`,
+    "/usr/local/bin/obsidian",
+  ],
   win32: [`${process.env.LOCALAPPDATA}\\Obsidian\\Obsidian.com`],
 };
 
@@ -34,11 +29,8 @@ function getObsidianBinary(): string {
   const override = process.env.OBSIDIAN_CLI_PATH;
   if (override) return override;
 
-  // Try bare command name first (works if it's in PATH)
-  const defaultName = platform() === "win32" ? "Obsidian.com" : "obsidian";
+  const defaultName = platform() === "win32" ? "Obsidian.com" : "obsidian-cli";
 
-  // Check well-known paths as fallback for environments with limited PATH
-  // (e.g. Claude Desktop doesn't source ~/.zprofile)
   const candidates = KNOWN_PATHS[platform()] ?? [];
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
@@ -109,13 +101,6 @@ export interface CliOptions {
   signal?: AbortSignal;
 }
 
-const STARTUP_SENTINEL = "Loaded main app package";
-const NOT_RUNNING_MSG = "Obsidian is not running. Please open Obsidian and try again.";
-
-function looksLikeStartup(output: string): boolean {
-  return output.includes(STARTUP_SENTINEL);
-}
-
 export async function runObsidianCli(
   command: string,
   params?: Record<string, unknown>,
@@ -164,34 +149,13 @@ export async function runObsidianCli(
           return;
         }
 
-        // Non-zero exit code — return stderr as error info
-        const out = stdout?.trim() ?? "";
-        if (looksLikeStartup(out)) {
-          reject(new Error(NOT_RUNNING_MSG));
-          return;
-        }
-        resolve({ stdout: out, stderr: stderr?.trim() ?? error.message });
+        resolve({ stdout: stdout?.trim() ?? "", stderr: stderr?.trim() ?? error.message });
         return;
       }
 
-      const out = stdout?.trim() ?? "";
-      if (looksLikeStartup(out)) {
-        reject(new Error(NOT_RUNNING_MSG));
-        return;
-      }
-      resolve({ stdout: out, stderr: stderr?.trim() ?? "" });
+      resolve({ stdout: stdout?.trim() ?? "", stderr: stderr?.trim() ?? "" });
     });
 
-    // Detect startup logs in real-time (~1-2s) instead of waiting for 30s timeout.
-    // When the CLI launches a new Electron instance instead of connecting to a
-    // running one, it emits "Loaded main app package" to stdout almost immediately.
-    child.stdout?.on("data", (chunk: Buffer) => {
-      if (looksLikeStartup(chunk.toString())) {
-        killAndReject(new Error(NOT_RUNNING_MSG));
-      }
-    });
-
-    // Support cancellation via AbortSignal
     if (options?.signal) {
       if (options.signal.aborted) {
         killAndReject(new Error("Operation cancelled"));

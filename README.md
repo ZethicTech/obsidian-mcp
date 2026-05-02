@@ -64,14 +64,16 @@ Restart Claude Desktop after saving.
 ### Claude Code
 
 ```bash
-claude mcp add obsidian npx @zethictech/obsidian-mcp --env OBSIDIAN_VAULT="My Vault"
+claude mcp add obsidian --env OBSIDIAN_VAULT="My Vault" -- npx -y @zethictech/obsidian-mcp
 ```
 
-To make it available across all projects, add `--scope global`:
+To make it available across all projects, add `--scope user`:
 
 ```bash
-claude mcp add obsidian npx @zethictech/obsidian-mcp --env OBSIDIAN_VAULT="My Vault" --scope user
+claude mcp add obsidian --scope user --env OBSIDIAN_VAULT="My Vault" -- npx -y @zethictech/obsidian-mcp
 ```
+
+The `--` separator is required so the command and its args aren't parsed as `claude mcp add` flags.
 
 ### Environment Variables
 
