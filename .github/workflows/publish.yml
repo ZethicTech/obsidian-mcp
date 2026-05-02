@@ -95,12 +95,6 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # Bundled npm with the runner's Node 22 has been observed to fail OIDC
-      # trusted-publisher auth (PUT 404 against npmjs.com despite a valid
-      # provenance signature). Pinning to latest npm restores the working
-      # behaviour used for v1.0.x–v1.1.6 releases.
-      - run: npm install -g npm@latest
-
       - run: npm ci
       - run: npm run build
 
@@ -117,13 +111,19 @@ jobs:
             exit 1
           fi
 
+      # Use npx to invoke a fresh npm@latest for pack/publish. The runner's
+      # bundled npm 10.x with Node 22 has been observed to fail OIDC
+      # trusted-publisher auth (PUT 404 against npmjs.com despite a valid
+      # provenance signature). `npm install -g npm@latest` self-replace
+      # bootstrap is racy ("Cannot find module 'promise-retry'"), so npx
+      # avoids the global-replace path entirely.
       - name: Pack (dry run)
         if: ${{ inputs.dry_run }}
-        run: npm pack
+        run: npx -y npm@latest pack
 
       - name: Publish to npm
         if: ${{ !inputs.dry_run }}
-        run: npm publish --access public --provenance
+        run: npx -y npm@latest publish --access public --provenance
 
       - name: Tag and push
         if: ${{ !inputs.dry_run }}
