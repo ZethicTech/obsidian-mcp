@@ -178,3 +178,9 @@ npx --yes @zethictech/obsidian-mcp
 ## License
 
 MIT
+
+## Built by Zethic
+
+`obsidian-mcp` is built and maintained by **[Zethic](https://zethic.com)**, a software and AI engineering studio in Bengaluru.
+
+Need AI assistants built on your team's knowledge? We do **[agentic AI development](https://zethic.com/ai/agentic-ai-development-services/)** — [hire dedicated engineers or talk to us about consulting →](https://zethic.com/contact-us/)
